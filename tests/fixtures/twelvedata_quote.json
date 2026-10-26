@@ -1,0 +1,16 @@
+{
+  "symbol": "SYNT",
+  "name": "Synthetic index example",
+  "exchange": "EXAMPLE",
+  "currency": "USD",
+  "datetime": "2026-06-27",
+  "timestamp": 1782000000,
+  "open": "5480.00",
+  "high": "5510.50",
+  "low": "5475.20",
+  "close": "5500.12",
+  "previous_close": "5480.00",
+  "change": "20.12",
+  "percent_change": "0.367",
+  "is_market_open": false
+}

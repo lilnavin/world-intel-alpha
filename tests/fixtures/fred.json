@@ -1,0 +1,16 @@
+{
+  "realtime_start": "2026-06-28",
+  "realtime_end": "2026-06-28",
+  "observation_start": "1600-01-01",
+  "observation_end": "9999-12-31",
+  "units": "lin",
+  "count": 1,
+  "observations": [
+    {
+      "realtime_start": "2026-06-28",
+      "realtime_end": "2026-06-28",
+      "date": "2026-06-27",
+      "value": "4.33"
+    }
+  ]
+}

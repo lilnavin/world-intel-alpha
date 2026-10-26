@@ -1,0 +1,52 @@
+,
+        {{DESK_ID}}: {
+          "type": "array",
+          "maxItems": {{MAX_ITEMS}},
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "why_it_matters",
+              "body",
+              "sources",
+              "tags"
+            ],
+            "properties": {
+              "headline": {
+                "type": "string"
+              },
+              "why_it_matters": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "sources": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outlet",
+                    "url"
+                  ],
+                  "properties": {
+                    "outlet": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }

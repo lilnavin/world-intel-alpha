@@ -1,0 +1,2 @@
+# Keep the installer backend identical to pyproject.toml.
+setuptools==79.0.1

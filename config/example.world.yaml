@@ -1,0 +1,46 @@
+version: 1
+
+# Broader international and financial coverage, with all SEC processing off.
+runtime:
+  timezone: UTC
+  data_root: ~/.world-intel
+
+desks:
+  - {id: world, kind: global, label: World}
+  - {id: us, kind: global, label: United States}
+  - {id: finance, kind: finance, label: Finance}
+
+sources:
+  filings: {enabled: false}
+  earnings: {enabled: false}
+  # yfinance is primary; Twelve Data fills gaps when its key is configured.
+  # Yahoo suffixes .KS and .T identify Korean and Tokyo listings.
+  markets:
+    indices: [[sp500, SPX, "^GSPC"], [nikkei, N225, "^N225"]]
+    fx: [[usdjpy, USD/JPY, "JPY=X"], [eurusd, EUR/USD, "EURUSD=X"]]
+    commodities: [[gold, XAU/USD, "GC=F"]]
+    risk: [[vix, VIX, "^VIX"]]
+  macro: {fred_series: []}
+  events: {gdelt_themes: []}
+  # tier: 1 = wire/national broadsheet, 2 = other, 3 = aggregator.
+  feeds:
+    - {name: bbc-world, desk: world, tier: 1, url: "http://feeds.bbci.co.uk/news/world/rss.xml"}
+    - {name: guardian-world, desk: world, tier: 1, url: "https://www.theguardian.com/world/rss"}
+    - {name: aljazeera, desk: world, tier: 1, url: "https://www.aljazeera.com/xml/rss/all.xml"}
+    - {name: france24, desk: world, tier: 1, url: "https://www.france24.com/en/rss"}
+    - {name: dw-world, desk: world, tier: 1, url: "https://rss.dw.com/rdf/rss-en-world"}
+    - {name: npr-world, desk: world, tier: 1, url: "https://feeds.npr.org/1004/rss.xml"}
+    - {name: guardian-us, desk: us, tier: 1, url: "https://www.theguardian.com/us-news/rss"}
+    - {name: abc-politics, desk: us, tier: 1, url: "https://abcnews.go.com/abcnews/politicsheadlines"}
+    - {name: bbc-business, desk: finance, tier: 1, url: "http://feeds.bbci.co.uk/news/business/rss.xml"}
+    - {name: guardian-business, desk: finance, tier: 1, url: "https://www.theguardian.com/uk/business/rss"}
+
+delivery:
+  adapter: stdout
+
+# Optional ranking overrides; omitted topics retain the packaged topic weights.
+# ranking:
+#   version: 1
+#   topics:
+#     - {terms: [earthquake, tsunami], weight: 3.0}
+#   major_events: {enabled: true, max_events: 2, min_publishers: 2}

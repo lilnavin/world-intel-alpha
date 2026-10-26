@@ -1,0 +1,20 @@
+{
+  "count": 1,
+  "total_pages": 1,
+  "results": [
+    {
+      "document_number": "2026-13900",
+      "title": "Synthetic efficiency rule example",
+      "html_url": "https://example.com/government/rule-1",
+      "pdf_url": "https://example.com/government/rule-1.pdf",
+      "type": "Rule",
+      "publication_date": "2026-06-28",
+      "agencies": [
+        {
+          "id": 165,
+          "name": "Energy Department"
+        }
+      ]
+    }
+  ]
+}

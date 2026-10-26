@@ -1,0 +1,6 @@
+#!/bin/sh
+# Install separately when approved. Scan index blobs, never working-tree files.
+set -eu
+root=$(git rev-parse --show-toplevel) || exit 2
+cd "$root" || exit 2
+exec python tools/check_staged.py

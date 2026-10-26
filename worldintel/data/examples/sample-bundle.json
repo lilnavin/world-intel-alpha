@@ -1,0 +1,10 @@
+{
+  "date": "2026-01-01",
+  "as_of": "2026-01-01T07:00:00+00:00",
+  "news": [],
+  "markets": {"indices": {"sp500": {"level": 100, "change_pct": 1.25, "asof": "2026-01-01"}}, "risk": {"vix": {"level": 15, "change_pct": 0, "asof": "2026-01-01"}}},
+  "filings": [{"company": "Example Components", "form": "8-K", "filed": "2026-01-01", "url": "https://example.com/filing"}],
+  "earnings_calendar": [{"ticker": "DEMO", "name": "Demo Instruments", "date": "2026-01-02"}],
+  "post_earnings_candidates": [{"ticker": "EXMP", "name": "Example Components", "report_date": "2026-01-01", "eps_actual": 1.2, "eps_estimate": 1.1, "revenue_actual": 120000000, "revenue_estimate": 110000000, "source": "us"}],
+  "source_health": {"demo": {"ok": true, "note": "Invented data; no services contacted."}}
+}

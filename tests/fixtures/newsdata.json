@@ -1,0 +1,40 @@
+{
+  "status": "success",
+  "totalResults": 2,
+  "results": [
+    {
+      "article_id": "abc123",
+      "title": "Synthetic policy example 1",
+      "link": "https://example.com/newsdata/story-1",
+      "source_id": "synthetic-source-1",
+      "source_name": "Synthetic Example Source 1",
+      "pubDate": "2026-06-28 02:10:00",
+      "description": "Synthetic summary for parser example 1.",
+      "content": "Synthetic body for a schema example.",
+      "country": [
+        "japan"
+      ],
+      "category": [
+        "business"
+      ],
+      "language": "english"
+    },
+    {
+      "article_id": "def456",
+      "title": "Synthetic policy example 2",
+      "link": "https://example.com/newsdata/story-2",
+      "source_id": "synthetic-source-2",
+      "source_name": "Synthetic Example Source 2",
+      "pubDate": "2026-06-28 05:00:00",
+      "description": "Synthetic summary for parser example 2.",
+      "country": [
+        "united states"
+      ],
+      "category": [
+        "politics"
+      ],
+      "language": "english"
+    }
+  ],
+  "nextPage": "xyz"
+}

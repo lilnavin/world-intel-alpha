@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["bodies"],
+  "properties": {
+    "bodies": { "type": "array", "items": { "type": "string" } }
+  }
+}

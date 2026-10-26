@@ -1,0 +1,41 @@
+Description:           Daily Index of EDGAR Dissemination Feed by Form Type
+Last Data Received:    Jul 31, 2026
+Comments:              you@example.com
+Anonymous FTP:         ftp://ftp.sec.gov/edgar/
+ 
+ 
+ 
+ 
+Form Type   Company Name                                                  CIK
+      Date Filed  File Name
+---------------------------------------------------------------------------------------------------------------------------------------------
+1-A              FJHL Inc.                                                     2135411     20260731    edgar/data/2135411/0002135411-26-000005.txt                                                
+1-A              SDR Drone, Inc.                                               1331421     20260731    edgar/data/1331421/0001493152-26-035610.txt                                                
+1-K              Central RoRo, LLC                                             1991899     20260731    edgar/data/1991899/0001213900-26-084118.txt                                                
+10-12G           Macquarie Infrastructure Income Opportunities Fund            2050809     20260731    edgar/data/2050809/0001104659-26-089138.txt                                                
+10-D             AmeriCredit Automobile Receivables Trust 2022-1               1910595     20260731    edgar/data/1910595/0001213900-26-083586.txt                                                
+10-D             AmeriCredit Automobile Receivables Trust 2022-2               1929381     20260731    edgar/data/1929381/0001213900-26-083587.txt                                                
+10-D             AmeriCredit Automobile Receivables Trust 2023-1               1963240     20260731    edgar/data/1963240/0001213900-26-083588.txt                                                
+10-D             AmeriCredit Automobile Receivables Trust 2023-2               1987878     20260731    edgar/data/1987878/0001213900-26-083589.txt                                                
+4                17 Education & Technology Group Inc.                          1821468     20260731    edgar/data/1821468/0001193125-26-326663.txt                                                
+4                A.K.A. BRANDS HOLDING CORP.                                   1865107     20260731    edgar/data/1865107/0001628280-26-051437.txt                                                
+4                A.K.A. BRANDS HOLDING CORP.                                   1865107     20260731    edgar/data/1865107/0001834416-26-000007.txt                                                
+4                A.K.A. BRANDS HOLDING CORP.                                   1865107     20260731    edgar/data/1865107/0002052034-26-000004.txt                                                
+4                SYNTHETIC EXAMPLE OWNER                                             9999999001  20260731    edgar/data/9999999001/9999999001-26-000001.txt                                                
+4                ACADIA PHARMACEUTICALS INC                                    1070494     20260731    edgar/data/1070494/0001861477-26-000005.txt                                                
+4                ACME UNITED CORP                                              2098        20260731    edgar/data/2098/0001193125-26-328699.txt                                                
+4                ACME UNITED CORP                                              2098        20260731    edgar/data/2098/0001193125-26-328700.txt                                                
+SCHEDULE 13D     Baird Medical Investment Holdings Ltd                         1982444     20260731    edgar/data/1982444/0001683168-26-005875.txt                                                
+SCHEDULE 13D     Endeavor Blockchain, LLC                                      2101945     20260731    edgar/data/2101945/0000912282-26-001018.txt                                                
+SCHEDULE 13D     ExcelFin SPAC LLC                                             1887711     20260731    edgar/data/1887711/0001683168-26-005875.txt                                                
+SCHEDULE 13D     Sphere 3D Corp.                                               1591956     20260731    edgar/data/1591956/0000912282-26-001018.txt                                                
+SCHEDULE 13D/A   AMG BBH Asset-Backed Credit Fund, LLC                         2097545     20260731    edgar/data/2097545/0001193125-26-328063.txt                                                
+SCHEDULE 13D/A   AMG New York Holdings Corp.                                   2073844     20260731    edgar/data/2073844/0001193125-26-328063.txt                                                
+SCHEDULE 13D/A   APO Corp.                                                     2012136     20260731    edgar/data/2012136/0001193125-26-328646.txt                                                
+SCHEDULE 13D/A   Abu Dhabi Developmental Holding Co PJSC                       1997216     20260731    edgar/data/1997216/0001011438-26-000451.txt                                                
+SCHEDULE 13D/A   Apollo S3 Private Markets Fund                                1978024     20260731    edgar/data/1978024/0001193125-26-328646.txt                                                
+SCHEDULE 13D/A   BEXIL INVESTMENT TRUST                                        1059213     20260731    edgar/data/1059213/0001628873-26-000051.txt                                                
+SCHEDULE 13D/A   BW Group Ltd                                                  1649312     20260731    edgar/data/1649312/0001213900-26-083951.txt                                                
+SCHEDULE 13D/A   Bexil Securities LLC                                          1510001     20260731    edgar/data/1510001/0001628873-26-000051.txt                                                
+SCHEDULE 13D/A   Capital World Investors                                       1422849     20260731    edgar/data/1422849/0001193125-26-328687.txt                                                
+SCHEDULE 13D/A   Cloopen Group Holding Ltd                                     1804583     20260731    edgar/data/1804583/0001193125-26-327564.txt                                                

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic parser fixture reconstructed 2026-10-26; numeric regression values retained. -->
+<edgarSubmission xmlns="http://www.sec.gov/edgar/schedule13D" xmlns:com="http://www.sec.gov/edgar/common">
+  <formData>
+    <coverPageHeader>
+      <dateOfEvent>07/29/2026</dateOfEvent>
+      <issuerInfo>
+        <issuerCIK>0000000002</issuerCIK>
+        <issuerName>Synthetic Credit Fund LLC</issuerName>
+        <com:fixtureLabel>Synthetic ignored namespace field</com:fixtureLabel>
+      </issuerInfo>
+    </coverPageHeader>
+    <reportingPersons>
+      <reportingPersonInfo>
+        <reportingPersonName>Synthetic Holdings Corp.</reportingPersonName>
+        <aggregateAmountOwned>1541762.06</aggregateAmountOwned>
+        <percentOfClass>59.9</percentOfClass>
+      </reportingPersonInfo>
+    </reportingPersons>
+  </formData>
+</edgarSubmission>

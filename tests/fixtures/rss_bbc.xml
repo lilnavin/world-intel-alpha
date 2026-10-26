@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>Synthetic RSS feed</title>
+  <item>
+    <title>Synthetic energy policy update</title>
+    <link>https://example.com/rss/world-1</link>
+    <description>Synthetic summary describes a hypothetical policy decision.</description>
+    <pubDate>Sat, 02 Aug 2026 06:30:00 GMT</pubDate>
+    <category>World</category>
+  </item>
+  <item>
+    <title>Second synthetic story</title>
+    <link>https://example.com/rss/world-2</link>
+    <description>Second synthetic summary.</description>
+    <pubDate>Sat, 02 Aug 2026 05:00:00 GMT</pubDate>
+  </item>
+</channel></rss>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic parser fixture reconstructed 2026-10-26; numeric regression values retained. -->
+<edgarSubmission xmlns="http://www.sec.gov/edgar/schedule13D" xmlns:com="http://www.sec.gov/edgar/common">
+  <formData>
+    <coverPageHeader>
+      <dateOfEvent>10/01/2024</dateOfEvent>
+      <issuerInfo>
+        <issuerCIK>0000000001</issuerCIK>
+        <issuerName>Synthetic Medical Holdings Ltd</issuerName>
+        <com:fixtureLabel>Synthetic ignored namespace field</com:fixtureLabel>
+      </issuerInfo>
+    </coverPageHeader>
+    <reportingPersons>
+      <reportingPersonInfo>
+        <reportingPersonName>Synthetic Capital One LLC</reportingPersonName>
+        <aggregateAmountOwned>4249031.00</aggregateAmountOwned>
+        <percentOfClass>11.6</percentOfClass>
+      </reportingPersonInfo>
+      <reportingPersonInfo>
+        <reportingPersonName>Synthetic Capital Two Ltd</reportingPersonName>
+        <aggregateAmountOwned>7004016.00</aggregateAmountOwned>
+        <percentOfClass>19.1</percentOfClass>
+      </reportingPersonInfo>
+      <reportingPersonInfo>
+        <reportingPersonName>Synthetic Capital Three LLC</reportingPersonName>
+        <aggregateAmountOwned>290000.00</aggregateAmountOwned>
+        <percentOfClass>0.8</percentOfClass>
+      </reportingPersonInfo>
+    </reportingPersons>
+    <items1To7>
+      <item4>
+        <transactionPurpose>Synthetic investors acquired these example securities for a hypothetical investment exercise. The example group may review the fictional position and consider additional purchases or sales during the test period.</transactionPurpose>
+      </item4>
+    </items1To7>
+  </formData>
+</edgarSubmission>

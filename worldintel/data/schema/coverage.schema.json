@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cards"
+  ],
+  "properties": {
+    "cards": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "headline",
+          "why_it_matters",
+          "body",
+          "sources",
+          "tags",
+          "region"
+        ],
+        "properties": {
+          "headline": {
+            "type": "string"
+          },
+          "why_it_matters": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "outlet",
+                "url"
+              ],
+              "properties": {
+                "outlet": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "region": {
+            "type": "string",
+            "enum": [
+              "US",
+              "AMERICAS",
+              "ASIA",
+              "MENA",
+              "EUROPE",
+              "GLOBAL"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

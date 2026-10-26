@@ -1,0 +1,21 @@
+{
+  "response": {
+    "status": "ok",
+    "total": 1,
+    "results": [
+      {
+        "id": "synthetic/2026/example",
+        "type": "article",
+        "sectionId": "business",
+        "sectionName": "Business",
+        "webPublicationDate": "2026-06-28T03:00:00Z",
+        "webTitle": "Synthetic central bank policy example",
+        "webUrl": "https://example.com/guardian-schema/story-1",
+        "fields": {
+          "trailText": "Synthetic summary for a hypothetical rate decision.",
+          "bodyText": "Synthetic article body used only to exercise normalization."
+        }
+      }
+    ]
+  }
+}

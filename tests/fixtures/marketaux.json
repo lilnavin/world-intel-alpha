@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "found": 1,
+    "returned": 1,
+    "limit": 10,
+    "page": 1
+  },
+  "data": [
+    {
+      "uuid": "uuid-1",
+      "title": "Synthetic currency market example",
+      "description": "Synthetic summary for a hypothetical currency decision.",
+      "snippet": "Synthetic schema example.",
+      "url": "https://example.com/marketaux/story-1",
+      "source": "example.com",
+      "published_at": "2026-06-28T04:30:00.000000Z",
+      "entities": [
+        {
+          "symbol": "USDJPY",
+          "name": "US Dollar / Japanese Yen",
+          "sentiment_score": -0.12
+        }
+      ]
+    }
+  ]
+}

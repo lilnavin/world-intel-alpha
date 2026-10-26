@@ -1,0 +1,22 @@
+{
+  "articles": [
+    {
+      "url": "https://a.example/1",
+      "title": "Synthetic article sample 1",
+      "domain": "a.example",
+      "language": "English"
+    },
+    {
+      "url": "https://b.example/2",
+      "title": "Synthetic article sample 2",
+      "domain": "b.example",
+      "language": "English"
+    },
+    {
+      "url": "https://c.example/3",
+      "title": "Synthetic article sample 3",
+      "domain": "c.example",
+      "language": "English"
+    }
+  ]
+}

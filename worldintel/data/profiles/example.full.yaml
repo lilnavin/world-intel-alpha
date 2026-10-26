@@ -1,0 +1,484 @@
+# Public source tables; replace synthetic contact before enabling SEC requests.
+# Markets: yfinance primary, Twelve Data gap filler; Yahoo .KS/.T: Korea/Tokyo.
+# Feed tiers: 1 wire/national broadsheet; 2 other; 3 aggregator.
+version: 1
+identity:
+  contact_email: tester@example.org
+  user_agent_product: world-intel/1.0
+runtime:
+  timezone: Asia/Tokyo
+  data_root: ~/.world-intel
+sources:
+  feeds:
+  - name: bbc-world
+    desk: world
+    tier: 1
+    url: http://feeds.bbci.co.uk/news/world/rss.xml
+  - name: guardian-world
+    desk: world
+    tier: 1
+    url: https://www.theguardian.com/world/rss
+  - name: aljazeera
+    desk: world
+    tier: 1
+    url: https://www.aljazeera.com/xml/rss/all.xml
+  - name: france24
+    desk: world
+    tier: 1
+    url: https://www.france24.com/en/rss
+  - name: dw-world
+    desk: world
+    tier: 1
+    url: https://rss.dw.com/rdf/rss-en-world
+  - name: npr-world
+    desk: world
+    tier: 1
+    url: https://feeds.npr.org/1004/rss.xml
+  - name: reuters-gnews
+    desk: world
+    tier: 1
+    url: https://news.google.com/rss/search?q=when:24h+site:reuters.com&hl=en-US&gl=US&ceid=US:en
+  - name: scmp
+    desk: world
+    tier: 2
+    url: https://www.scmp.com/rss/91/feed
+  - name: straitstimes-world
+    desk: world
+    tier: 2
+    url: https://www.straitstimes.com/news/world/rss.xml
+  - name: euronews
+    desk: world
+    tier: 1
+    url: https://www.euronews.com/rss
+  - name: wsj-world
+    desk: us
+    tier: 1
+    url: https://feeds.content.dowjones.io/public/rss/RSSWorldNews
+  - name: politico
+    desk: us
+    tier: 1
+    url: https://rss.politico.com/politics-news.xml
+  - name: whitehouse-actions
+    desk: us
+    tier: 1
+    url: https://www.whitehouse.gov/presidential-actions/feed/
+  - name: propublica
+    desk: us
+    tier: 1
+    url: https://www.propublica.org/feeds/propublica/main
+  - name: guardian-us
+    desk: us
+    tier: 1
+    url: https://www.theguardian.com/us-news/rss
+  - name: abc-politics
+    desk: us
+    tier: 1
+    url: https://abcnews.go.com/abcnews/politicsheadlines
+  - name: cbs-politics
+    desk: us
+    tier: 1
+    url: https://www.cbsnews.com/latest/rss/politics
+  - name: nbc-politics
+    desk: us
+    tier: 1
+    url: https://feeds.nbcnews.com/nbcnews/public/politics
+  - name: pbs-politics
+    desk: us
+    tier: 1
+    url: https://www.pbs.org/newshour/feeds/rss/politics
+  - name: rollcall
+    desk: us
+    tier: 2
+    url: https://rollcall.com/feed/
+  - name: axios
+    desk: us
+    tier: 2
+    url: https://api.axios.com/feed/
+  - name: nikkei-asia
+    desk: japan
+    tier: 1
+    url: https://asia.nikkei.com/rss/feed/nar
+  - name: japantimes
+    desk: japan
+    tier: 1
+    url: https://www.japantimes.co.jp/feed/
+  - name: japannews-yomiuri
+    desk: japan
+    tier: 1
+    url: https://japannews.yomiuri.co.jp/feed/
+  - name: mainichi-en
+    desk: japan
+    tier: 1
+    url: https://mainichi.jp/rss/etc/english_latest.rss
+  - name: kyodo-english
+    desk: japan
+    tier: 1
+    url: https://english.kyodonews.net/list/feed/rss4kyodonews-fzone
+  - name: yomiuri-society
+    desk: japan
+    tier: 1
+    url: https://japannews.yomiuri.co.jp/society/feed/
+  - name: japantoday
+    desk: japan
+    tier: 2
+    url: https://japantoday.com/feed
+  - name: globemail-canada
+    desk: canada
+    tier: 1
+    url: https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/canada/
+  - name: torontostar
+    desk: canada
+    tier: 2
+    url: https://www.thestar.com/search/?f=rss&t=article&c=news*&l=50&s=start_time&sd=desc
+  - name: financialpost
+    desk: canada
+    tier: 1
+    url: https://financialpost.com/feed
+  - name: nationalpost
+    desk: canada
+    tier: 2
+    url: https://nationalpost.com/feed
+  - name: thetyee
+    desk: canada
+    tier: 2
+    url: https://thetyee.ca/rss2.xml
+  - name: nationalobserver
+    desk: canada
+    tier: 2
+    url: https://www.nationalobserver.com/front/rss
+  - name: ipolitics
+    desk: canada
+    tier: 2
+    url: https://www.ipolitics.ca/feed/
+  - name: economist-finance
+    desk: finance
+    tier: 1
+    url: https://www.economist.com/finance-and-economics/rss.xml
+  - name: bbc-business
+    desk: finance
+    tier: 1
+    url: http://feeds.bbci.co.uk/news/business/rss.xml
+  - name: guardian-business
+    desk: finance
+    tier: 1
+    url: https://www.theguardian.com/uk/business/rss
+  - name: cnbc-top
+    desk: finance
+    tier: 2
+    url: https://www.cnbc.com/id/100003114/device/rss/rss.html
+  - name: cnbc-economy
+    desk: finance
+    tier: 2
+    url: https://www.cnbc.com/id/20910258/device/rss/rss.html
+  - name: marketwatch
+    desk: finance
+    tier: 2
+    url: https://feeds.content.dowjones.io/public/rss/mw_topstories
+  - name: ft-home
+    desk: finance
+    tier: 1
+    url: https://www.ft.com/rss/home
+  - name: pymnts
+    desk: finance
+    tier: 2
+    url: https://www.pymnts.com/feed/
+  - name: fortune
+    desk: finance
+    tier: 2
+    url: https://fortune.com/feed/fortune-feeds/?id=3230629
+  - name: techcrunch
+    desk: finance
+    tier: 2
+    url: https://techcrunch.com/feed/
+  - name: semafor
+    desk: finance
+    tier: 2
+    url: https://www.semafor.com/rss.xml
+  - name: coindesk
+    desk: finance
+    tier: 2
+    url: https://www.coindesk.com/arc/outboundfeeds/rss/
+  - name: cnbc-tech
+    desk: finance
+    tier: 2
+    url: https://www.cnbc.com/id/19854910/device/rss/rss.html
+  - name: fed-press
+    desk: finance
+    tier: 1
+    url: https://www.federalreserve.gov/feeds/press_all.xml
+  - name: boj-whatsnew
+    desk: finance
+    tier: 1
+    url: https://www.boj.or.jp/en/rss/whatsnew.xml
+  - name: bankofcanada-press
+    desk: finance
+    tier: 1
+    url: https://www.bankofcanada.ca/content_type/press-releases/feed/
+  - name: ecb-press
+    desk: finance
+    tier: 1
+    url: https://www.ecb.europa.eu/rss/press.html
+  - name: bls-latest
+    desk: finance
+    tier: 1
+    url: https://www.bls.gov/feed/bls_latest.rss
+  markets:
+    indices:
+    - - sp500
+      - SPX
+      - ^GSPC
+    - - nasdaq
+      - IXIC
+      - ^IXIC
+    - - nikkei
+      - N225
+      - ^N225
+    - - kospi
+      - KS11
+      - ^KS11
+    - - hangseng
+      - HSI
+      - ^HSI
+    - - stoxx600
+      - SXXP
+      - ^STOXX
+    - - dax
+      - DAX
+      - ^GDAXI
+    fx:
+    - - usdjpy
+      - USD/JPY
+      - JPY=X
+    - - cadjpy
+      - CAD/JPY
+      - CADJPY=X
+    - - usdcad
+      - USD/CAD
+      - CAD=X
+    - - eurusd
+      - EUR/USD
+      - EURUSD=X
+    rates:
+    - - us5y
+      - FVX
+      - ^FVX
+    - - us10y
+      - TNX
+      - ^TNX
+    - - us30y
+      - TYX
+      - ^TYX
+    commodities:
+    - - brent
+      - BNO
+      - BZ=F
+    - - wti
+      - WTI
+      - CL=F
+    - - gold
+      - XAU/USD
+      - GC=F
+    risk:
+    - - vix
+      - VIX
+      - ^VIX
+  macro:
+    fred_series:
+    - - DFF
+      - Federal funds effective rate
+    - - DGS10
+      - US 10-year Treasury yield
+    - - CPIAUCSL
+      - US CPI (all items index)
+  events:
+    gdelt_themes:
+    - - monetary policy
+      - ("central bank" OR inflation OR "interest rate")
+    - - geopolitics
+      - (war OR conflict OR sanctions)
+    - - trade
+      - (tariff OR "trade war" OR "supply chain")
+  filings:
+    enabled: true
+    edgar_forms:
+    - S-1
+    - 424B4
+    - 8-K
+  earnings:
+    enabled: true
+    window_days: 10
+    watchlist:
+    - - AAPL
+      - Apple
+    - - MSFT
+      - Microsoft
+    - - NVDA
+      - Nvidia
+    - - GOOGL
+      - Alphabet
+    - - AMZN
+      - Amazon
+    - - META
+      - Meta Platforms
+    - - TSLA
+      - Tesla
+    - - NFLX
+      - Netflix
+    - - ORCL
+      - Oracle
+    - - JPM
+      - JPMorgan Chase
+    - - GS
+      - Goldman Sachs
+    - - BAC
+      - Bank of America
+    - - AMD
+      - AMD
+    - - AVGO
+      - Broadcom
+    - - TSM
+      - TSMC
+    - - ASML
+      - ASML
+    - - SAP
+      - SAP
+    - - NVO
+      - Novo Nordisk
+    - - XOM
+      - Exxon Mobil
+    - - JNJ
+      - Johnson & Johnson
+    - - 005930.KS
+      - Samsung Electronics
+    - - 7203.T
+      - Toyota
+    - - 6758.T
+      - Sony
+    - - 9984.T
+      - SoftBank Group
+delivery:
+  adapter: stdout
+desks:
+- id: world
+  kind: global
+  label: World
+- id: us
+  kind: global
+  label: United States
+- id: japan
+  kind: national
+  label: Japan
+  tab:
+    colour: oklch(0.72 0.17 20)
+    order: 3
+  target_stories:
+  - 3
+  - 4
+  signature_patterns:
+  - \bjapan
+  - \btokyo\b
+  - \bosaka\b
+  - \bkyoto\b
+  - \bchiba\b
+  - \bhokkaido\b
+  - \bokinawa\b
+  - \bfukushima\b
+  - \bkyushu\b
+  - \bhonshu\b
+  - \bnagoya\b
+  - \bkobe\b
+  - \bsendai\b
+  - \bhiroshima\b
+  - \bnagasaki\b
+  - \bprefectur
+  - \byen\b
+  - \bnikkei\b
+  - \bboj\b
+  - \btakaichi\b
+  - \bishiba\b
+  - \bkishida\b
+  - \byasukuni\b
+  - \bimperial (?:house|family)\b
+  - \bliberal democratic party\b
+  - \bjgb\b
+  - \bkyodo\b
+  prompt_section: "### Japan — `briefing.japan` (3–4 JAPAN stories)\r\nThe Japan desk: domestic politics,\
+    \ policy, security, society, disasters, and Japan-specific\r\neconomic developments. This section\
+    \ exists because The Brief is world-affairs-first and ranks by\r\nglobal impact, which means a Diet\
+    \ vote, a prefectural evacuation or a Bank of Japan personnel\r\ndecision loses to a war every single\
+    \ day and never gets written at all. Here it gets written.\r\n\r\nEach story has the SAME fields as\
+    \ a Brief story — `headline`, `why_it_matters`, `body`, `sources`,\r\n`tags` — and there is NO `region`\
+    \ field: every item here is Japan.\r\n- `body`: **100–200 words**, inverted pyramid, the same wire-service\
+    \ register and the same hard\r\n  bans as The Brief. This is not a summary section; it is the same\
+    \ craft on a Japanese story.\r\n\r\n**Rules for the Japan section:**\n- **The Brief's eligibility\
+    \ gates apply here UNCHANGED.** A Japan story must be grounded in an item\r\n  carrying `content`\
+    \ — a body written from a bare headline is padding here exactly as it is there.\r\n  Do NOT headline\
+    \ a story whose only source is `tier` 3. Never invent a URL: use only URLs present\r\n  in the BUNDLE,\
+    \ or an empty `sources` array.\r\n- **Single-mention rule.** If a Japan story is genuinely a top world\
+    \ story, it belongs in\r\n  `briefing.brief` and is described IN FULL there — it is NOT repeated here.\
+    \ Reference it at most.\r\n  This section is for the Japan stories that would otherwise never be written.\r\
+    \n- Availability-conditioned target: count the Japan-desk items that carry `content`, are tier 1-2,\n\
+    \  and are nationally consequential. If at least 3 qualify, publish 3-4. If 1-2 qualify, publish all\n\
+    \  that qualify. Use `[]` only when none qualify. This is a coverage floor over good material, never\n\
+    \  permission to stretch a weak or headline-only item.\n\n"
+- id: canada
+  kind: national
+  label: Canada
+  tab:
+    colour: oklch(0.78 0.15 350)
+    order: 4
+  target_stories:
+  - 2
+  - 3
+  signature_patterns:
+  - \bcanada
+  - \bcanadian
+  - \bottawa\b
+  - \btoronto\b
+  - \bmontreal\b
+  - \bvancouver\b
+  - \bquebec\b
+  - \balberta\b
+  - \bbritish columbia\b
+  - \bontario\b
+  - \bmanitoba\b
+  - \bsaskatchewan\b
+  - \bnova scotia\b
+  - \bnew brunswick\b
+  - \bnewfoundland\b
+  - \bnunavut\b
+  - \byukon\b
+  - \bnorthwest territories\b
+  - \bcarney\b
+  - \bpoilievre\b
+  - \bhouse of commons\b
+  - \bbank of canada\b
+  - \bboc\b
+  - \brcmp\b
+  - \bfirst nations\b
+  - \binuit\b
+  - \bmétis\b
+  prompt_section: "### Canada — `briefing.canada` (2-3 CANADA stories)\nThe Canada desk: federal and provincial\
+    \ politics with national consequence, public policy,\nsecurity, Indigenous affairs, society, disasters,\
+    \ and Canada-specific economic developments.\nCanada has its own section because globally ranked leads\
+    \ systematically crowd out important\ndomestic developments.\n\nEach story has the SAME fields and\
+    \ 100-200 word wire-service body as a Japan story; there is no\n`region` field because every item\
+    \ here is Canada.\n\n**Rules for the Canada section:**\n- The Brief's eligibility gates apply unchanged:\
+    \ every story must resolve to a tier 1-2 item with\n  full `content`; use only URLs in the BUNDLE\
+    \ and never write from a headline or teaser.\n- Single-mention rule: a Canadian story selected as\
+    \ a top world story belongs only in\n  `briefing.brief`, not here.\n- National consequence is required.\
+    \ Exclude municipal colour, routine crime, consumer service,\n  opinion, and provincial stories without\
+    \ wider policy, economic, security, or lives-at-scale\n  stakes.\n- Availability-conditioned target:\
+    \ if at least 3 Canada-desk items qualify, publish 2-3 distinct\n  stories; if 1-2 qualify, publish\
+    \ all that qualify; use `[]` only when none qualify. Return fewer\n  rather than padding, and do not\
+    \ publish two cards about the same event.\n\r\n"
+- id: finance
+  kind: finance
+  label: Finance
+
+# Optional ranking overrides; omitted topics retain the packaged topic weights.
+# ranking:
+#   version: 1
+#   topics:
+#     - {terms: [earthquake, tsunami], weight: 3.0}
+#   major_events: {enabled: true, max_events: 2, min_publishers: 2}

@@ -1,0 +1,1 @@
+These stories, institutions, companies, figures and events are invented demonstration material. They are not a captured briefing or investment information. All editorial links use reserved example domains. The sample exercises the briefing, national desk, signal, threads, radar, finance, earnings and filing views without contacting any service.

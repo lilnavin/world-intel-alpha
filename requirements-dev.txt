@@ -1,0 +1,10 @@
+# Direct dependencies observed in the passing foundation environment.
+# This is not a complete, hash-locked release dependency set.
+beautifulsoup4==4.15.0
+curl_cffi==0.15.0
+lxml==6.1.1
+pandas==3.0.4
+pytest==9.1.1
+requests==2.33.0
+PyYAML==6.0.3
+yfinance==1.5.1

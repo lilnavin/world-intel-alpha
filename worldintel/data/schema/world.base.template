@@ -1,0 +1,314 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "briefing",
+    "kb_deltas",
+    "source_notes"
+  ],
+  "properties": {
+    "briefing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "brief",
+        "signal",
+        "threads",
+        "on_radar"{{NATIONAL_REQUIRED}}
+      ],
+      "properties": {
+        "brief": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "why_it_matters",
+              "body",
+              "sources",
+              "tags",
+              "region"
+            ],
+            "properties": {
+              "headline": {
+                "type": "string"
+              },
+              "why_it_matters": {
+                "type": "string"
+              },
+              "body": {
+                "type": "string"
+              },
+              "sources": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outlet",
+                    "url"
+                  ],
+                  "properties": {
+                    "outlet": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "region": {
+                "type": "string",
+                "enum": [
+                  "US",
+                  "AMERICAS",
+                  "ASIA",
+                  "MENA",
+                  "EUROPE",
+                  "GLOBAL"
+                ]
+              }
+            }
+          }
+        },
+        "signal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "top",
+            "buried",
+            "noise_line"
+          ],
+          "properties": {
+            "top": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "story",
+                "reason",
+                "url"
+              ],
+              "properties": {
+                "story": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            },
+            "buried": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "story",
+                  "reason",
+                  "url"
+                ],
+                "properties": {
+                  "story": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "noise_line": {
+              "type": "string"
+            }
+          }
+        },
+        "threads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slug",
+              "today",
+              "since"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "today": {
+                "type": "string"
+              },
+              "since": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "on_radar": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }{{NATIONAL_PROPERTIES}}
+      }
+    },
+    "kb_deltas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entities_upsert",
+        "threads_upsert",
+        "overview_replace",
+        "expectations_resolved"
+      ],
+      "properties": {
+        "entities_upsert": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slug",
+              "type",
+              "summary",
+              "facts",
+              "threads"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "facts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "threads": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "threads_upsert": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slug",
+              "status",
+              "summary",
+              "timeline_add",
+              "watch",
+              "expectations_add"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "timeline_add": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "date",
+                    "note"
+                  ],
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "watch": {
+                "type": "string"
+              },
+              "expectations_add": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "metric",
+                    "consensus",
+                    "release_date",
+                    "source"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "metric": {
+                      "type": "string"
+                    },
+                    "consensus": {
+                      "type": "string"
+                    },
+                    "release_date": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "overview_replace": {
+          "type": "string"
+        },
+        "expectations_resolved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "source_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

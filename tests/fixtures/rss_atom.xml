@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <title>Synthetic bank rate example</title>
+    <link href="https://example.com/atom/story-1"/>
+    <summary>Synthetic bank example leaves the rate at 2.75%.</summary>
+    <published>2026-08-02T13:00:00Z</published>
+  </entry>
+</feed>

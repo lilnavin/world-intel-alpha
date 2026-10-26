@@ -1,0 +1,50 @@
+<!-- Synthetic parser fixture, reconstructed 2026-10-26. Numeric regression values retained; no real person/address. -->
+<SEC-DOCUMENT>synthetic-submission.txt
+<SEC-HEADER>synthetic</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<TEXT>
+<XML>
+<ownershipDocument>
+  <documentType>4</documentType>
+  <issuer>
+    <issuerCik>0000000005</issuerCik>
+    <issuerName>SYNTHETIC EXAMPLE BANK INC</issuerName>
+    <issuerTradingSymbol>SYNB</issuerTradingSymbol>
+  </issuer>
+  <reportingOwner>
+    <reportingOwnerId>
+      <rptOwnerName>EXAMPLE ALEX Q</rptOwnerName>
+    </reportingOwnerId>
+    <reportingOwnerRelationship>
+      <isDirector>true</isDirector>
+      <isOfficer>false</isOfficer>
+      <isTenPercentOwner>false</isTenPercentOwner>
+      <isOther>false</isOther>
+    </reportingOwnerRelationship>
+  </reportingOwner>
+  <nonDerivativeTable>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-30</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>S</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>1000</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>42.91</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+  </nonDerivativeTable>
+  <derivativeTable />
+  <aff10b5One>true</aff10b5One>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

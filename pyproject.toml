@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools==79.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "world-intel"
+version = "0.1.0"
+description = "A configurable daily intelligence briefing"
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1"]
+
+[project.scripts]
+world-intel = "worldintel.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["worldintel*"]
+
+[tool.setuptools.package-data]
+"worldintel.data" = ["profiles/*.yaml", "prompts/*.md", "schema/*.json", "schema/*.template", "examples/*.json", "examples/*.md"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

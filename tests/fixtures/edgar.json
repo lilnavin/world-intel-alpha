@@ -1,0 +1,42 @@
+{
+  "took": 2364,
+  "timed_out": false,
+  "hits": {
+    "total": {"value": 10000, "relation": "gte"},
+    "hits": [
+      {
+        "_index": "edgar_file",
+        "_id": "0002141084-26-000001:asiaai-forms-1-20260701a.htm",
+        "_source": {
+          "ciks": ["0002141084"],
+          "display_names": ["Asia AI Group Inc  (CIK 0002141084)"],
+          "form": "S-1",
+          "file_date": "2026-06-30",
+          "adsh": "0002141084-26-000001"
+        }
+      },
+      {
+        "_index": "edgar_file",
+        "_id": "0001605888-26-000037:altn-20260629.htm",
+        "_source": {
+          "ciks": ["0001605888"],
+          "display_names": ["ATLANTIC INTERNATIONAL CORP.  (ATLN, SQLLW)  (CIK 0001605888)"],
+          "form": "8-K",
+          "file_date": "2026-07-01",
+          "adsh": "0001605888-26-000037"
+        }
+      },
+      {
+        "_index": "edgar_file",
+        "_id": "0001911066-26-000089:ncpif-20260701.htm",
+        "_source": {
+          "ciks": ["0001911066"],
+          "display_names": ["Nuveen Churchill Private Capital Income Fund  (CIK 0001911066)"],
+          "form": "424B4",
+          "file_date": "2026-06-28",
+          "adsh": "0001911066-26-000089"
+        }
+      }
+    ]
+  }
+}

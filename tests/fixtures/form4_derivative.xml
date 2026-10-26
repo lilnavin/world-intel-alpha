@@ -1,0 +1,133 @@
+<!-- Synthetic parser fixture, reconstructed 2026-10-26. Numeric regression values retained; no real person/address. -->
+<SEC-DOCUMENT>synthetic-submission.txt
+<SEC-HEADER>synthetic</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<TEXT>
+<XML>
+<ownershipDocument>
+  <documentType>4</documentType>
+  <issuer>
+    <issuerCik>0000000002</issuerCik>
+    <issuerName>Synthetic Example Issuer Inc.</issuerName>
+    <issuerTradingSymbol>SYNT</issuerTradingSymbol>
+  </issuer>
+  <reportingOwner>
+    <reportingOwnerId>
+      <rptOwnerName>EXAMPLE ALEX Q</rptOwnerName>
+    </reportingOwnerId>
+    <reportingOwnerRelationship>
+      <isDirector>1</isDirector>
+      <isOfficer>1</isOfficer>
+      <isTenPercentOwner>0</isTenPercentOwner>
+      <isOther>0</isOther>
+      <officerTitle>CEO and President</officerTitle>
+      <otherText />
+    </reportingOwnerRelationship>
+  </reportingOwner>
+  <nonDerivativeTable>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-29</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>A</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>300000</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>0</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-29</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>A</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>666666</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>0</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-29</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>A</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>166666</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>0</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-31</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>D</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>170876</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>13.95</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+  </nonDerivativeTable>
+  <derivativeTable>
+    <derivativeTransaction>
+      <transactionDate>
+        <value>2026-07-29</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>A</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>294155</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>0</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </derivativeTransaction>
+    <derivativeTransaction>
+      <transactionDate>
+        <value>2026-07-29</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>D</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>538410</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>13.95</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </derivativeTransaction>
+  </derivativeTable>
+  <aff10b5One>0</aff10b5One>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

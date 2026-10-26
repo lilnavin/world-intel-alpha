@@ -1,0 +1,147 @@
+<!-- Synthetic parser fixture, reconstructed 2026-10-26. Numeric regression values retained; no real person/address. -->
+<SEC-DOCUMENT>synthetic-submission.txt
+<SEC-HEADER>synthetic</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<TEXT>
+<XML>
+<ownershipDocument>
+  <documentType>4</documentType>
+  <issuer>
+    <issuerCik>0000000004</issuerCik>
+    <issuerName>Synthetic Learning &amp; Technology Inc.</issuerName>
+    <issuerTradingSymbol>SYNT</issuerTradingSymbol>
+  </issuer>
+  <reportingOwner>
+    <reportingOwnerId>
+      <rptOwnerName>EXAMPLE ALEX Q</rptOwnerName>
+    </reportingOwnerId>
+    <reportingOwnerRelationship>
+      <isDirector>true</isDirector>
+      <isOfficer>true</isOfficer>
+      <isTenPercentOwner>true</isTenPercentOwner>
+      <isOther>false</isOther>
+      <officerTitle>Chief Executive Officer</officerTitle>
+    </reportingOwnerRelationship>
+  </reportingOwner>
+  <nonDerivativeTable>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-22</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>L</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>2420</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>2.2568</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-23</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>L</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>243</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>2.2320</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-24</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>L</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>275</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>2.1502</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-27</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>L</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>500</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>2.1177</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-28</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>L</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>475</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>2.0634</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-29</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>L</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>500</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>2.0636</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+    <nonDerivativeTransaction>
+      <transactionDate>
+        <value>2026-07-30</value>
+      </transactionDate>
+      <transactionCoding>
+        <transactionCode>P</transactionCode>
+      </transactionCoding>
+      <transactionAmounts>
+        <transactionShares>
+          <value>500</value>
+        </transactionShares>
+        <transactionPricePerShare>
+          <value>1.8628</value>
+        </transactionPricePerShare>
+      </transactionAmounts>
+    </nonDerivativeTransaction>
+  </nonDerivativeTable>
+  <derivativeTable />
+  <aff10b5One>false</aff10b5One>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
