@@ -17,6 +17,7 @@ _SCHEMA = {
     "identity": {"contact_email": str, "user_agent_product": str},
     "runtime": {"timezone": str, "data_root": str, "media_dir": str, "env_file": str},
     "analysis": {"engine": str, "reasoning_effort": str, "concurrent_passes": bool, "source_review_enabled": bool,
+                 "source_review_repair_enabled": bool,
                  "smoke_test_timeout_s": int, "world_timeout_s": int,
                  "finance_timeout_s": int, "pipeline_timeout_s": int,
                  "finish_reserve_s": int, "rewrite_timeout_s": int},
@@ -284,6 +285,8 @@ class Config:
             for n, token in enumerate(self.tuning["region_tokens"]):
                 _text(token, f"tuning.region_tokens[{n}]")
         analysis = raw.get("analysis", {})
+        if analysis.get("source_review_repair_enabled", False) and not analysis.get("source_review_enabled", False):
+            raise ConfigError("`analysis.source_review_repair_enabled` requires source_review_enabled")
         if analysis.get("engine", "codex") != "codex":
             raise ConfigError("`analysis.engine` must be codex")
         if "reasoning_effort" in analysis:

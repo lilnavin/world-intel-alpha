@@ -5,12 +5,14 @@ that the model enumerated every factual claim or that a quote entails a claim.
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import time
 
 from worldintel import config, data
-from worldintel.core.quality_gate import _citation_identity
+from worldintel.core.quality_gate import _citation_identity, META_RE
+from worldintel.core.coverage_gate import _clean
 
 SCOPE = "final full story cards: headline, why_it_matters, body; not whole-brief verification"
 FIELDS = ("headline", "why_it_matters", "body")
@@ -62,7 +64,8 @@ def _material(result, bundle):
     return {"cards": cards, "sources": list(sources.values())}
 
 
-def _validate(response, material):
+def _validate_integrity(response, material):
+    """Validate every response binding, including evidence on rejected cards."""
     expected = {c["card_id"]: c for c in material["cards"]}
     sources = {s["source_id"]: s for s in material["sources"]}
     if not isinstance(response, dict) or set(response) != {"cards"} or not isinstance(response["cards"], list):
@@ -82,10 +85,10 @@ def _validate(response, material):
             raise ValueError("reviewed prose digest mismatch")
         if not isinstance(record["reason"], str) or not record["reason"].strip():
             raise ValueError("missing review reason")
-        if record["verdict"] != "supported":
-            raise ValueError("unsupported or uncertain card")
+        if record["verdict"] not in ("supported", "unsupported", "uncertain"):
+            raise ValueError("invalid review verdict")
         claims = record["claims"]
-        if not isinstance(claims, list) or not claims:
+        if not isinstance(claims, list) or (record["verdict"] == "supported" and not claims):
             raise ValueError("supported card lacks claim evidence")
         for claim in claims:
             if not isinstance(claim, dict) or set(claim) != {"field", "text", "source_id", "source_sha256", "quote"}:
@@ -101,28 +104,101 @@ def _validate(response, material):
                     or not quote.strip() or quote not in source["content"]):
                 raise ValueError("invalid source hash or verbatim quote")
 
+    return [r for r in response["cards"] if r["verdict"] != "supported"]
 
-def review(result, bundle, *, review_fn, deadline, clock=time.monotonic):
-    """One independent call maximum; any missing evidence or failure holds output."""
+
+def _validate(response, material):
+    if _validate_integrity(response, material):
+        raise ValueError("unsupported or uncertain card")
+
+
+def _correction_material(material, response):
+    rejected = _validate_integrity(response, material)
+    ids = {r["card_id"] for r in rejected}
+    cards = [c for c in material["cards"] if c["card_id"] in ids]
+    cited = {sid for c in cards for sid in c["source_ids"]}
+    return {"cards": cards, "sources": [s for s in material["sources"] if s["source_id"] in cited],
+            "review": {"cards": rejected}}
+
+
+def _card(result, cid):
+    section, _, index = cid.rpartition(":")
+    briefing = result["briefing"]
+    items = briefing["finance"]["brief"] if section == "finance.brief" else briefing[section]
+    return items[int(index)]
+
+
+def _apply_corrections(result, material, rejected, patches):
+    """Return a staged copy; exact rejected IDs/hashes and prose-only patches."""
+    expected = {c["card_id"]: c for c in material["cards"] if c["card_id"] in {r["card_id"] for r in rejected}}
+    if (not expected or not isinstance(patches, dict) or set(patches) != {"cards"}
+            or not isinstance(patches["cards"], list) or len(patches["cards"]) != len(expected)):
+        raise ValueError("invalid correction set")
+    candidate, seen = copy.deepcopy(result), set()
+    for patch in patches["cards"]:
+        if not isinstance(patch, dict) or set(patch) != {"card_id", "prose_sha256", *FIELDS}:
+            raise ValueError("invalid correction fields")
+        cid = patch["card_id"]
+        if not isinstance(cid, str) or cid not in expected or cid in seen:
+            raise ValueError("invalid correction identity")
+        seen.add(cid)
+        if patch["prose_sha256"] != expected[cid]["prose_sha256"]:
+            raise ValueError("correction digest mismatch")
+        if any(not isinstance(patch[f], str) or not patch[f].strip() or META_RE.search(patch[f]) for f in FIELDS):
+            raise ValueError("invalid corrected prose")
+        if not 100 <= len(_clean(patch["body"]).split()) <= 200:
+            raise ValueError("corrected body length invalid")
+        _card(candidate, cid).update({f: patch[f] for f in FIELDS})
+    return candidate
+
+
+def _prompt(name, material):
+    prompt = data.read_text(f"prompts/{name}.md") + "\nINPUT_JSON\n" + json.dumps(material, ensure_ascii=False)
+    if len(prompt.encode("utf-8")) > 131072:
+        raise ValueError("review prompt byte cap exceeded")
+    return prompt
+
+
+def review(result, bundle, *, review_fn, deadline, repair_fn=None, clock=time.monotonic):
+    """One review, optionally one scoped correction and one final all-card review."""
     audit = {"status": "hold", "scope": SCOPE, "attempted": False, "cards_reviewed": 0,
-             "timeout_s": 0, "reason": None}
-    try:
-        material = _material(result, bundle)
-        prompt = data.read_text("prompts/source-review.md") + "\nINPUT_JSON\n" + json.dumps(material, ensure_ascii=False)
-        if len(prompt.encode("utf-8")) > 131072:
-            raise ValueError("review prompt byte cap exceeded")
-        audit["timeout_s"] = min(120, max(0, deadline - clock()))
-        if audit["timeout_s"] <= 0:
+             "timeout_s": 0, "reason": None, "repair_attempted": False, "review_calls": 0,
+             "corrected_cards": 0}
+    def call(name, material, callback):
+        prompt = _prompt(name, material)
+        timeout = min(120, max(0, deadline - clock()))
+        if timeout <= 0:
             raise ValueError("analysis budget exhausted")
-        with data.as_file("schema/source-review.schema.json") as schema:
-            audit["attempted"] = True
-            response = review_fn(prompt, str(schema), audit["timeout_s"])
+        with data.as_file(f"schema/{name}.schema.json") as schema:
+            if name == "source-review":
+                audit.update(attempted=True, timeout_s=timeout)
+                audit["review_calls"] += 1
+            else:
+                audit["repair_attempted"] = True
+            response = callback(prompt, str(schema), timeout)
         if clock() > deadline:
             raise ValueError("analysis deadline exceeded")
-        _validate(response, material)
+        return response
+    try:
+        material = _material(result, bundle)
+        response = call("source-review", material, review_fn)
+        rejected = _validate_integrity(response, material)
+        candidate = result
+        if rejected:
+            if repair_fn is None:
+                raise ValueError("unsupported or uncertain card")
+            patches = call("source-correction", _correction_material(material, response), repair_fn)
+            candidate = _apply_corrections(result, material, rejected, patches)
+            final_material = _material(candidate, bundle)
+            _validate(call("source-review", final_material, review_fn), final_material)
+            # All checks have completed before any caller-owned prose is adopted.
+            for record in rejected:
+                cid = record["card_id"]
+                _card(result, cid).update({f: _card(candidate, cid)[f] for f in FIELDS})
+            audit["corrected_cards"] = len(rejected)
         audit.update(status="accepted", cards_reviewed=len(material["cards"]))
     except ValueError as exc:
-        # All locally generated ValueErrors are bounded and contain no source text.
+        # Locally generated messages contain no source text; model errors stay private.
         audit["reason"] = str(exc)[:160] if not audit["attempted"] else "review validation failed"
     except Exception:
         audit["reason"] = "review unavailable or malformed input"

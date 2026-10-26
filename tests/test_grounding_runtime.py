@@ -70,6 +70,62 @@ def test_disabled_profile_adds_no_review_call(offline, monkeypatch):
     assert json.loads((root / "run-status.json").read_text())["source_review"]["status"] == "disabled"
 
 
+@pytest.mark.parametrize("review_enabled,dry,status,persist", [
+    (False, False, "disabled", True),
+    (False, True, "disabled", False),
+    (True, False, "accepted", True),
+    (True, True, "accepted", False),
+    (True, False, "hold", False),
+    (True, True, "hold", False),
+])
+def test_scoreboard_persistence_respects_review_and_dry_barriers(
+        offline, monkeypatch, review_enabled, dry, status, persist):
+    root, _, fetch, analysis, _, _ = offline
+    if review_enabled:
+        enable()
+    original_fetch = fetch.side_effect
+    markets = {"indices": {"TEST": {"level": 123, "asof": TODAY}}}
+
+    def fetch_markets(*args, **kwargs):
+        bundle = original_fetch(*args, **kwargs)
+        bundle["markets"] = markets
+        return bundle
+
+    fetch.side_effect = fetch_markets
+    scoreboard = root / "wiki" / "markets" / "scoreboard.md"
+    history = root / "wiki" / "markets" / "history.jsonl"
+    original_analysis = analysis.return_value
+
+    def analyze(*args, **kwargs):
+        # Disabled profiles retain scoreboard context before analysis; enabled
+        # profiles must wait until the source review accepts the result.
+        assert scoreboard.exists() == (not review_enabled and not dry)
+        assert history.exists() == (not review_enabled and not dry)
+        return original_analysis
+
+    analysis.side_effect = analyze
+
+    def review(*args, **kwargs):
+        assert not scoreboard.exists() and not history.exists()
+        return {"status": status, "cards_reviewed": 1}
+
+    monkeypatch.setattr(run.grounding_review, "review", review)
+    update = Mock(wraps=run.kb.update_scoreboard)
+    append = Mock(wraps=run.kb.append_scoreboard_history)
+    monkeypatch.setattr(run.kb, "update_scoreboard", update)
+    monkeypatch.setattr(run.kb, "append_scoreboard_history", append)
+    monkeypatch.setattr(sys, "argv", ["run.py", "--force"] + (["--dry"] if dry else []))
+    assert run.main() == (1 if dry and status == "hold" else 0)
+    assert update.call_count == append.call_count == int(persist)
+    assert scoreboard.exists() == history.exists() == persist
+    if persist:
+        update.assert_called_once_with(str(root), markets)
+        append.assert_called_once_with(str(root), markets, TODAY)
+        assert "TEST" in scoreboard.read_text(encoding="utf-8")
+        assert [json.loads(line) for line in history.read_text(encoding="utf-8").splitlines()] == [
+            {"date": TODAY, "instruments": {"TEST": {"level": 123, "asof": TODAY}}}]
+
+
 @pytest.mark.parametrize('accepted', [False, True])
 def test_review_stages_mutating_earnings_and_filing_ledgers_until_acceptance(offline, monkeypatch, accepted):
     root, _, _, _, _, index_roots = offline
@@ -90,3 +146,34 @@ def test_review_stages_mutating_earnings_and_filing_ledgers_until_acceptance(off
         assert {name: (root / name).read_bytes() for name in before} == before
     assert index_roots and index_roots[0] != root
     assert not index_roots[0].exists()
+
+
+def test_runtime_names_initial_correction_and_final_invocations(offline, monkeypatch):
+    enable()
+    cfg = config.get()
+    raw = cfg.raw
+    raw["analysis"]["source_review_repair_enabled"] = True
+    config.set_for_test(config.Config(raw, cfg.source_path))
+    calls = []
+    monkeypatch.setattr(run.codex_engine, "run_schema", lambda *a, **k: calls.append(k["pass_name"]) or {})
+    def bounded(result, bundle, *, review_fn, repair_fn, deadline):
+        review_fn("initial", "schema", 10)
+        repair_fn("correction", "schema", 9)
+        review_fn("final", "schema", 8)
+        return {"status": "accepted", "cards_reviewed": 1}
+    monkeypatch.setattr(run.grounding_review, "review", bounded)
+    monkeypatch.setattr(sys, "argv", ["run.py", "--force"])
+    assert run.main() == 0
+    assert calls == ["source-review", "source-correction", "source-review-final"]
+
+
+def test_runtime_capture_failure_holds_before_review_or_correction(offline, monkeypatch):
+    enable()
+    from test_grounding_review import fixture
+    material = run.grounding_review._material(*fixture())
+    monkeypatch.setattr(run.grounding_review, "_material", lambda *a: material)
+    monkeypatch.setattr(run.model_evidence.Collector, "__init__", lambda self, *a, **k: (
+        setattr(self, "failed", True), setattr(self, "invocations", []), setattr(self, "root", __import__('pathlib').Path('f' * 32))) and None)
+    monkeypatch.setattr(run.codex_engine, "run_schema", lambda *a, **k: pytest.fail("capture failure must hold"))
+    monkeypatch.setattr(sys, "argv", ["run.py", "--dry", "--force"])
+    assert run.main() == 1

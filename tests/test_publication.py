@@ -88,7 +88,8 @@ def test_evidence_hash_exit_commit_command_and_minimal_limit(evidence):
 def minimal_report(evidence, root):
     data, directory = evidence
     summary = {'schema_version': 1, 'dry': True, 'source_dirty': False,
-               'source_review': {'status': 'accepted', 'attempted': True, 'cards_reviewed': 1},
+               'source_review': {'status': 'accepted', 'attempted': True, 'cards_reviewed': 1, 'repair_attempted': False, 'review_calls': 1, 'corrected_cards': 0, 'timeout_s': 100, 'reason': None,
+                                  'scope': 'final full story cards: headline, why_it_matters, body; not whole-brief verification'},
                'model_evidence': model_evidence(directory / 'retained-model-evidence'),
                'source_commit': HEAD, 'source_file': str(root / 'worldintel/run.py'),
                'generation': 'rendered', 'handoff': 'disabled', 'delivery_confirmed': False,

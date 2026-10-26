@@ -131,15 +131,20 @@ setting to your private profile's existing `analysis` section:
 ```yaml
 analysis:
   source_review_enabled: true
+  source_review_repair_enabled: true
 ```
 
 Existing profiles omit this option and keep their previous model-call behavior.
-When enabled, review adds at most one model invocation, consumes model access
-or subscription quota, and uses the remaining analysis deadline with a maximum
-120-second timeout. Missing sources, uncertain or unsupported claims, invalid
-review output, or exhausted review budget hold the run before briefing,
-knowledge updates, or delivery. Release validation requires review enabled;
-disabled review cannot count as a factual pass.
+Review consumes model access or subscription quota and uses the remaining
+analysis deadline, with at most 120 seconds per call. With only review enabled,
+it adds at most one invocation and holds unsupported or uncertain cards. The
+optional repair setting permits one correction of identified unsupported cards
+and one final review of every card: at most three added invocations in total.
+It preserves citations and card membership, and adopts corrected prose only
+after final acceptance. There is no further correction or retry if it fails.
+Missing sources, invalid responses, unsupported final claims, or exhausted
+budget hold the run before briefing, knowledge updates, or delivery. Release
+validation enables both checks; disabled review cannot count as a factual pass.
 
 The review covers full world, configured national, and finance story cards'
 headlines, explanations, and bodies. It does not certify radar, threads, signal,
@@ -148,7 +153,7 @@ quotes and a model's supported verdict reduce risk; they do not prove that all
 claims were identified or correctly checked. Inspect cited reporting before
 owner content acceptance.
 
-Exact model inputs and raw outputs are private evidence, separate from replay
+Exact CLI stdin/schema bytes and raw outputs are private evidence, separate from replay
 capsules and briefing attachments. Keep the configured data directory outside
 Git and restrict access to it. Never upload evidence stores to public issues,
 release archives, or CI artifacts. An incomplete evidence capture cannot qualify

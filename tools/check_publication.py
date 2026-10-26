@@ -434,7 +434,8 @@ def minimal_report(entry, directory, head, root, path):
              and Path(report['model_evidence_root']).is_absolute()
              and not Path(report['model_evidence_root']).resolve().is_relative_to(root.resolve())
              and not verify_minimal_run.validate_model_evidence(
-                 report['model_evidence_root'], report['dry_summary']['model_evidence']),
+                 report['model_evidence_root'], report['dry_summary']['model_evidence'],
+                 report['dry_summary']['source_review']),
              'minimal report private model evidence invalid')
     except (ValueError, TypeError, KeyError) as exc:
         if isinstance(exc, GateError):

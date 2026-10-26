@@ -56,7 +56,13 @@ def validate_result(code, stdout, stderr, commit, root):
             errors.append('incomplete or unattested registered-event quality')
         review = item.get('source_review', {})
         if (review.get('status') != 'accepted' or review.get('attempted') is not True or
-                type(review.get('cards_reviewed')) is not int or review['cards_reviewed'] <= 0):
+                type(review.get('cards_reviewed')) is not int or review['cards_reviewed'] <= 0 or
+                type(review.get('repair_attempted')) is not bool or
+                type(review.get('review_calls')) is not int or
+                type(review.get('corrected_cards')) is not int or
+                review.get('review_calls') != (2 if review.get('repair_attempted') else 1) or
+                (not 1 <= review['corrected_cards'] <= review['cards_reviewed']
+                 if review.get('repair_attempted') else review['corrected_cards'] != 0)):
             errors.append('source review not accepted')
         evidence = item.get('model_evidence', {})
         records = evidence.get('invocations', [])
@@ -65,6 +71,11 @@ def validate_result(code, stdout, stderr, commit, root):
                 not {'world', 'finance', 'source-review'} <= {r.get('pass_name') for r in records} or
                 any(r.get('outcome') != 'success' for r in records)):
             errors.append('incomplete private model evidence')
+        names = [r.get('pass_name') for r in records]
+        required_review = ['source-review', 'source-correction', 'source-review-final'] if review.get('repair_attempted') else ['source-review']
+        if ([n for n in names if n in {'source-review', 'source-correction', 'source-review-final'}] != required_review
+                or names.count('world') != 1 or names.count('finance') != 1):
+            errors.append('inconsistent source review invocation inventory')
         rewrite = item["rewrite"]
         if (type(rewrite["attempted"]) is not bool or rewrite["skipped"] is not False or
                 rewrite["error"] is not None or type(rewrite["remaining"]) is not int or
@@ -80,7 +91,7 @@ def validate_result(code, stdout, stderr, commit, root):
     return errors
 
 
-def validate_model_evidence(directory, summary):
+def validate_model_evidence(directory, summary, review=None):
     """Verify retained private bytes against the run summary and each manifest."""
     try:
         directory = Path(directory).resolve(strict=True)
@@ -122,9 +133,95 @@ def validate_model_evidence(directory, summary):
         if (not records or any(p.is_symlink() for p in paths) or
                 {p.relative_to(directory).as_posix() for p in paths if p.is_file()} != expected):
             raise ValueError
+        if review is not None:
+            _validate_review_evidence(directory, records, review)
         return []
-    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError):
         return ['private model evidence integrity failed']
+
+
+def _validate_review_evidence(directory, records, audit):
+    """Bind the captured one- or three-call chain to the actual final material."""
+    from worldintel import data
+    from worldintel.core import grounding_review as g
+    import copy
+    repair = audit['repair_attempted']
+    names = ['source-review', 'source-correction', 'source-review-final'] if repair else ['source-review']
+    selected = [r for r in records if r['pass_name'] in {'source-review', 'source-correction', 'source-review-final'}]
+    if ([r['pass_name'] for r in selected] != names or type(repair) is not bool
+            or audit['review_calls'] != (2 if repair else 1) or type(audit['review_calls']) is not int
+            or type(audit['corrected_cards']) is not int or audit['status'] != 'accepted'
+            or audit['attempted'] is not True or audit['scope'] != g.SCOPE or audit['reason'] is not None
+            or type(audit['cards_reviewed']) is not int or audit['cards_reviewed'] <= 0):
+        raise ValueError('invalid accepted review audit')
+    captures = []
+    for record in selected:
+        folder = directory / record['invocation_id']
+        manifest = json.loads((folder / 'manifest.json').read_bytes())
+        timeout = manifest['timeout_s']
+        if type(timeout) not in (int, float) or not 0 < timeout <= 120:
+            raise ValueError('invalid review timeout')
+        name = 'source-correction' if record['pass_name'] == 'source-correction' else 'source-review'
+        raw_prompt = (folder / 'stdin.bin').read_bytes()
+        prompt = raw_prompt.decode('utf-8').replace('\r\n', '\n')
+        material = json.loads(prompt.split('\nINPUT_JSON\n', 1)[1])
+        with data.as_file(f'schema/{name}.schema.json') as schema:
+            if (folder / 'schema.bin').read_bytes() != Path(schema).read_bytes():
+                raise ValueError('review schema mismatch')
+        expected_prompt = g._prompt(name, material)
+        if raw_prompt not in (expected_prompt.encode('utf-8'), expected_prompt.replace('\n', '\r\n').encode('utf-8')):
+            raise ValueError('review prompt mismatch')
+        captures.append((material, json.loads((folder / 'output.bin').read_bytes()), timeout))
+    material, initial, _ = captures[0]
+    # Recheck hashes against actual captured prose/documents before using feedback.
+    if (set(material) != {'cards', 'sources'} or len(material['cards']) != audit['cards_reviewed']
+            or not 1 <= len(material['cards']) <= 24 or not 1 <= len(material['sources']) <= 48):
+        raise ValueError('review material mismatch')
+    original = {'briefing': {}}
+    source_ids = set()
+    for source in material['sources']:
+        if (set(source) != {'source_id', 'sha256', 'url', 'title', 'content'} or source['source_id'] in source_ids
+                or source['sha256'] != g._digest(source['content'])):
+            raise ValueError('source digest mismatch')
+        source_ids.add(source['source_id'])
+    used_sources = set()
+    for c in material['cards']:
+        if (set(c) != {'card_id', 'prose_sha256', 'source_ids', *g.FIELDS}
+                or c['prose_sha256'] != g._digest(json.dumps({f: c[f] for f in g.FIELDS}, ensure_ascii=False, sort_keys=True))
+                or any(not isinstance(c[f], str) or not c[f].strip() for f in g.FIELDS)
+                or not c['source_ids'] or len(c['source_ids']) != len(set(c['source_ids']))
+                or not set(c['source_ids']) <= source_ids):
+            raise ValueError('card digest mismatch')
+        used_sources.update(c['source_ids'])
+        section, _, index = c['card_id'].rpartition(':')
+        if section == 'finance.brief':
+            items = original['briefing'].setdefault('finance', {}).setdefault('brief', [])
+        else:
+            items = original['briefing'].setdefault(section, [])
+        if str(len(items)) != index:
+            raise ValueError('card order mismatch')
+        items.append({f: c[f] for f in g.FIELDS})
+    if used_sources != source_ids:
+        raise ValueError('unused review source')
+    rejected = g._validate_integrity(initial, material)
+    final_material, final_response, timeout = captures[-1]
+    if audit['timeout_s'] != timeout:
+        raise ValueError('final review timeout mismatch')
+    if repair:
+        correction_input, patches, _ = captures[1]
+        if (not rejected or correction_input != g._correction_material(material, initial)
+                or audit['corrected_cards'] != len(rejected)):
+            raise ValueError('correction input mismatch')
+        candidate = g._apply_corrections(original, material, rejected, patches)
+        expected = copy.deepcopy(material)
+        for card in expected['cards']:
+            card.update({f: g._card(candidate, card['card_id'])[f] for f in g.FIELDS})
+            card['prose_sha256'] = g._digest(json.dumps({f: card[f] for f in g.FIELDS}, ensure_ascii=False, sort_keys=True))
+        if final_material != expected:
+            raise ValueError('final corrected material mismatch')
+    elif rejected or audit['corrected_cards'] != 0:
+        raise ValueError('unaccepted initial review')
+    g._validate(final_response, final_material)
 
 
 def git(*args):
@@ -174,7 +271,7 @@ def main(argv=None):
             profile["runtime"].update(data_root=str(scratch / "data"), media_dir=str(scratch / "media"),
                                       env_file=str(scratch / "absent.env"))
             profile["delivery"] = {"adapter": "file"}
-            profile.setdefault('analysis', {})['source_review_enabled'] = True
+            profile.setdefault('analysis', {}).update(source_review_enabled=True, source_review_repair_enabled=True)
             cfg_path = scratch / "profile.yaml"
             cfg_path.write_text(yaml.safe_dump(profile), encoding="utf-8")
             private = scratch / 'data' / 'model-evidence'
@@ -223,7 +320,7 @@ def main(argv=None):
                         report['model_evidence_root'] = str(target)
                         if 'dry_summary' in report:
                             report['errors'].extend(validate_model_evidence(
-                                target, report['dry_summary'].get('model_evidence', {})))
+                                target, report['dry_summary'].get('model_evidence', {}), report['dry_summary'].get('source_review', {})))
         if any(snapshot(path) != previous for path, previous in before.items()):
             report["errors"].append("protected configuration/runtime paths changed")
         if git("rev-parse", "HEAD") != commit or git("status", "--porcelain", "--untracked-files=all"):
@@ -233,7 +330,7 @@ def main(argv=None):
             report['errors'].append('retained private model evidence unavailable')
         elif 'dry_summary' in report:
             report['errors'].extend(validate_model_evidence(
-                report['model_evidence_root'], report['dry_summary'].get('model_evidence', {})))
+                report['model_evidence_root'], report['dry_summary'].get('model_evidence', {}), report['dry_summary'].get('source_review', {})))
         if not report["errors"]:
             report["status"] = "PASS"
     except Exception as exc:

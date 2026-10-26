@@ -10,7 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 def evidence():
     return {"schema_version": 1, "dry": True, "source_commit": "a" * 40,
-            "source_review": {"status": "accepted", "attempted": True, "cards_reviewed": 1},
+            "source_review": {"status": "accepted", "attempted": True, "cards_reviewed": 1, "repair_attempted": False, "review_calls": 1, "corrected_cards": 0, "timeout_s": 100, "reason": None,
+                              "scope": "final full story cards: headline, why_it_matters, body; not whole-brief verification"},
             "model_evidence": model_evidence(),
             "source_dirty": False, "source_file": str(Path('worldintel/run.py').resolve()),
             "generation": "rendered", "handoff": "disabled", "delivery_confirmed": False,
@@ -101,6 +102,7 @@ def test_live_runner_uses_isolated_profile_and_scrubs_keys(tmp_path, monkeypatch
         cfg = yaml.safe_load(Path(command[5]).read_text())
         assert cfg['delivery'] == {'adapter': 'file'}
         assert cfg['analysis']['source_review_enabled'] is True
+        assert cfg['analysis']['source_review_repair_enabled'] is True
         assert cfg['sources']['filings']['enabled'] is False
         assert cfg['sources']['earnings']['enabled'] is False
         assert cfg['sources']['markets'] == {}
@@ -246,3 +248,22 @@ def test_extra_run_entry_prevents_success_and_preserves_private_bytes(tmp_path, 
     report = json.loads(report_path.read_text())
     assert report['status'] == 'FAIL'
     assert len(list(Path(report['model_evidence_root']).rglob('stdin.bin'))) == 3
+
+
+@pytest.mark.parametrize('field,value', [('repair_attempted', None), ('repair_attempted', 0),
+    ('review_calls', 2), ('review_calls', True), ('corrected_cards', 1)])
+def test_inconsistent_correction_audit_rejected(field, value):
+    from tools.verify_minimal_run import validate_result, PREFIX
+    item = evidence()
+    item['source_review'].update(repair_attempted=False, review_calls=1, corrected_cards=0)
+    item['source_review'][field] = value
+    assert validate_result(0, '', PREFIX + json.dumps(item), 'a' * 40, Path.cwd())
+
+
+def test_extra_correction_capture_without_attempt_rejected():
+    from tools.verify_minimal_run import validate_result, PREFIX
+    item = evidence()
+    item['source_review'].update(repair_attempted=False, review_calls=1, corrected_cards=0)
+    record = dict(item['model_evidence']['invocations'][-1], invocation_id='d' * 32, pass_name='source-correction')
+    item['model_evidence']['invocations'].append(record)
+    assert validate_result(0, '', PREFIX + json.dumps(item), 'a' * 40, Path.cwd())

@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cards"
+  ],
+  "properties": {
+    "cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "card_id",
+          "prose_sha256",
+          "headline",
+          "why_it_matters",
+          "body"
+        ],
+        "properties": {
+          "card_id": {
+            "type": "string"
+          },
+          "prose_sha256": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "why_it_matters": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

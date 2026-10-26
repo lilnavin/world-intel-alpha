@@ -4,13 +4,49 @@ import json
 from pathlib import Path
 
 
-def model_evidence(root=None):
+def model_evidence(root=None, *, repaired=False):
     summary = {"run_id": "f" * 32, "complete": True, "invocations": []}
-    for index, name in enumerate(("world", "finance", "source-review")):
+    from worldintel import data
+    from worldintel.core import grounding_review as g
+    material = {"cards": [{"card_id": "brief:0", "headline": "Bridge opens", "why_it_matters": "Traffic can cross.",
+                          "body": "Officials opened a bridge on Monday.", "source_ids": ["source:0"]}],
+                "sources": [{"source_id": "source:0", "url": "https://example.test/bridge", "title": "Opening",
+                             "content": "Officials opened a bridge on Monday. Traffic can cross."}]}
+    def digest_cards(value):
+        for c in value["cards"]:
+            c["prose_sha256"] = g._digest(json.dumps({f: c[f] for f in g.FIELDS}, ensure_ascii=False, sort_keys=True))
+    digest_cards(material)
+    material["sources"][0]["sha256"] = g._digest(material["sources"][0]["content"])
+    def response(value, verdict="supported"):
+        c, source = value["cards"][0], value["sources"][0]
+        return {"cards": [{"card_id": c["card_id"], "prose_sha256": c["prose_sha256"], "verdict": verdict,
+                           "reason": "Source reports the opening.", "claims": [{"field": "body", "text": c["body"],
+                            "source_id": source["source_id"], "source_sha256": source["sha256"],
+                            "quote": "Officials opened a bridge on Monday."}]}]}
+    initial = response(material, "uncertain" if repaired else "supported")
+    captures = {"source-review": ("source-review", material, initial)}
+    if repaired:
+        import copy
+        c = material["cards"][0]
+        patch = {"cards": [{"card_id": c["card_id"], "prose_sha256": c["prose_sha256"], "headline": "Bridge opened",
+                           "why_it_matters": "Traffic can cross.", "body": " ".join([c["body"]] * 18)}]}
+        final = copy.deepcopy(material)
+        final["cards"][0].update({f: patch["cards"][0][f] for f in g.FIELDS})
+        digest_cards(final)
+        captures["source-correction"] = ("source-correction", g._correction_material(material, initial), patch)
+        captures["source-review-final"] = ("source-review", final, response(final))
+    for index, name in enumerate(("world", "finance", *captures)):
+
         iid = str(index) * 32
         files = {}
         blobs = {"stdin.bin": b"synthetic prompt", "schema.bin": b"{}", "output.bin": b"{}",
                  "stdout.bin": b"", "stderr.bin": b""}
+        if name in captures:
+            template, value, output = captures[name]
+            blobs["stdin.bin"] = g._prompt(template, value).encode("utf-8")
+            with data.as_file(f"schema/{template}.schema.json") as schema:
+                blobs["schema.bin"] = Path(schema).read_bytes()
+            blobs["output.bin"] = json.dumps(output).encode("utf-8")
         for filename, blob in blobs.items():
             files[filename] = {"sha256": hashlib.sha256(blob).hexdigest(), "bytes": len(blob)}
         manifest = {"schema_version": 1, "invocation_id": iid, "pass_name": name,

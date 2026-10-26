@@ -520,7 +520,9 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
 
     evidence = model_evidence.Collector(KB_ROOT, receipt["run_id"], media_dir=MEDIA_DIR)
     receipt["source_review"] = {"status": "pending" if review_enabled else "disabled",
-                                "scope": grounding_review.SCOPE}
+                                "scope": grounding_review.SCOPE, "attempted": False,
+                                "cards_reviewed": 0, "timeout_s": 0, "reason": None,
+                                "repair_attempted": False, "review_calls": 0, "corrected_cards": 0}
     _capsule = None
     try:
         _capsule = capsule.Pending(
@@ -869,20 +871,21 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
     _en = health.get("enrich") or {}
     log(f"enrich: {_en.get('note') or _en or 'n/a'}")
 
-    if not dry and not review_enabled:
-        try:
-            kb.update_scoreboard(KB_ROOT, bundle.get("markets") or {})
-        except Exception as exc:  # noqa: BLE001
-            log(f"update_scoreboard failed: {exc}")
+    def persist_scoreboard():
+        if not dry:
+            try:
+                kb.update_scoreboard(KB_ROOT, bundle.get("markets") or {})
+            except Exception as exc:  # noqa: BLE001
+                log(f"update_scoreboard failed: {exc}")
 
-    # Machine-readable market time series, additive to the scoreboard markdown
-    # above: builds the history a future analytical layer reads. Persistence,
-    # so it is skipped on --dry.
-    if not dry and not review_enabled:
-        try:
-            kb.append_scoreboard_history(KB_ROOT, bundle.get("markets") or {}, today)
-        except Exception as exc:  # noqa: BLE001
-            log(f"append_scoreboard_history failed (non-fatal): {exc}")
+            # Machine-readable market time series, additive to the scoreboard.
+            try:
+                kb.append_scoreboard_history(KB_ROOT, bundle.get("markets") or {}, today)
+            except Exception as exc:  # noqa: BLE001
+                log(f"append_scoreboard_history failed (non-fatal): {exc}")
+
+    if not review_enabled:
+        persist_scoreboard()
 
     context = kb.load_context(KB_ROOT, news=bundle.get("news"))
     log(f"entity dossiers in context: {len(context.get('entities') or [])}")
@@ -983,11 +986,25 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
         e["status"] for e in coverage_audit["events"]))
 
     if review_enabled:
+        review_calls = 0
+        def source_model(prompt, schema, timeout, name):
+            if evidence.failed:
+                raise ValueError("private model evidence capture failed")
+            response = codex_engine.run_schema(prompt, schema, reasoning_effort="medium", timeout=timeout,
+                                               evidence_sink=evidence, pass_name=name)
+            if evidence.failed:
+                raise ValueError("private model evidence capture failed")
+            return response
         def source_review_model(prompt, schema, timeout):
-            return codex_engine.run_schema(prompt, schema, reasoning_effort="medium", timeout=timeout,
-                                           evidence_sink=evidence, pass_name="source-review")
+            nonlocal review_calls
+            review_calls += 1
+            return source_model(prompt, schema, timeout,
+                                "source-review" if review_calls == 1 else "source-review-final")
+        def source_correction_model(prompt, schema, timeout):
+            return source_model(prompt, schema, timeout, "source-correction")
         receipt["source_review"] = grounding_review.review(
-            result, bundle, review_fn=source_review_model, deadline=_analysis_deadline)
+            result, bundle, review_fn=source_review_model, deadline=_analysis_deadline,
+            repair_fn=source_correction_model if analysis_cfg.get("source_review_repair_enabled", False) else None)
     receipt["model_evidence"] = evidence.summary()
     result["source_review"] = receipt["source_review"]
     if receipt["source_review"]["status"] == "hold":
@@ -1010,21 +1027,8 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
             earnings_report.write_pipeline(KB_ROOT, earnings_report.read_pipeline(scratch_root))
         if cfg.filings_enabled and os.path.isfile(os.path.join(scratch_root, filing_index.INDEX_FILE)):
             filing_index.write_index(KB_ROOT, filing_index.read_index(scratch_root))
-    if review_enabled and not dry:
-        try:
-            kb.update_scoreboard(KB_ROOT, bundle.get("markets") or {})
-        except Exception as exc:  # noqa: BLE001
-            log(f"update_scoreboard failed: {exc}")
-
-    # Machine-readable market time series, additive to the scoreboard markdown
-    # above: builds the history a future analytical layer reads. Persistence,
-    # so it is skipped on --dry.
-    if review_enabled and not dry:
-        try:
-            kb.append_scoreboard_history(KB_ROOT, bundle.get("markets") or {}, today)
-        except Exception as exc:  # noqa: BLE001
-            log(f"append_scoreboard_history failed (non-fatal): {exc}")
-
+    if review_enabled:
+        persist_scoreboard()
 
     deltas = result.get("kb_deltas") or {}
     if deltas and not dry:
