@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 import time
 
 from worldintel import config, data
@@ -164,6 +165,110 @@ def validate_cleanup_evidence(material, rawcaptures, *, cfg=None):
         raise ValueError("malformed cleanup evidence") from exc
 
 
+# This is negative evidence for a narrow simple-clause grammar, not an entailment
+# parser. Unknown subjects, objects, qualifications and tense forms abstain.
+_ACTION_FORMS = {"seek": "sought", "file": "filed", "submit": "submitted",
+                 "request": "requested", "challenge": "challenged", "appeal": "appealed"}
+_SUBJECT = r"(?:[A-Z][a-z]+(?: [A-Z][a-z]+){0,3}|he|she|they|we|it)"
+_ADVERB = r"(?:(?:initially|later|already|formally|previously|then) )?"
+_CONDITIONAL = re.compile(r"\b(?:if|unless|whether|would|could|might|may|should)\b", re.I)
+_OBJECT_GRAMMAR = {"no", "not", "never", "to", "of", "for", "against", "by", "with", "on", "in",
+                   "at", "from", "after", "before", "as", "and", "or", "but", "that", "which", "who",
+                   "if", "unless", "when", "while", "because", "without", "only"}
+
+
+def _action_object(tail):
+    # Require the whole bounded direct object, rather than sharing just a noun
+    # head (e.g. a qualified "review of X" is deliberately outside this grammar).
+    words = tail.strip().lower().split()
+    if words and words[0] in {"a", "an", "the", "his", "her", "its", "their", "our", "your", "my"}:
+        words = words[1:]
+    if (not 1 <= len(words) <= 5 or any(not re.fullmatch(r"[a-z]+", w)
+            or w in _OBJECT_GRAMMAR for w in words)):
+        return None
+    return tuple(words)
+
+
+def _completed_actions(text, *, quote=False):
+    actions = set()
+    for sentence in re.split(r"[.!?;]", text):
+        # Conditional scope is deliberately not inferred across clauses.
+        if (_CONDITIONAL.search(sentence) if not quote else
+                re.search(r"\b(?:if|unless|whether)\b", sentence, re.I)):
+            continue
+        for clause in re.split(r",|\bbut\b", sentence):
+            clause = clause.strip()
+            if (_CONDITIONAL.search(clause) or re.match(r"(?:Nobody|Neither|Nothing|None|No)\b", clause)):
+                continue
+            for base, past in _ACTION_FORMS.items():
+                perfect = r"(?:had )?" if quote else ""
+                match = re.fullmatch(_SUBJECT + " " + _ADVERB + perfect + past + r" (.+)", clause)
+                if match:
+                    obj = _action_object(match[1])
+                    if obj:
+                        actions.add((base, obj))
+    return actions
+
+
+def _possible_quote_completion(text, candidates):
+    # Unknown subject/reporting grammar is not positive completion proof. It
+    # nevertheless prevents a confident "only prospective" rejection when the
+    # same past action/object is present without an explicit negative/modal scope.
+    possible = set()
+    for sentence in re.split(r"[.!?;]", text):
+        if re.search(r"\b(?:if|unless|whether)\b", sentence, re.I):
+            continue
+        for clause in re.split(r",|\bbut\b", sentence):
+            if (_CONDITIONAL.search(clause) or re.search(r"n['\u2019]t\b", clause, re.I) or re.search(
+                    r"\b(?:not|never|no|nobody|neither|nothing|none|deny|denies|denied)\b", clause, re.I)):
+                continue
+            for base, past in _ACTION_FORMS.items():
+                match = re.search(r"\b" + past + r" (.+)$", clause)
+                if match:
+                    words = match[1].strip().lower().split()
+                    if words and words[0] in {"a", "an", "the", "his", "her", "its", "their", "our", "your", "my"}:
+                        words = words[1:]
+                    for action, obj in candidates:
+                        # A known whole object prefix followed by unparsed
+                        # qualification/time/coordination is enough to abstain;
+                        # it is not a claim that the rest proves completion.
+                        if action == base and tuple(words[:len(obj)]) == obj:
+                            possible.add((base, obj))
+    return possible
+
+
+def _temporal_contradiction(claim, quote):
+    completed = _completed_actions(claim)
+    if not completed:
+        return False
+    prospective = set()
+    for sentence in re.split(r"[.!?;]", quote):
+        if re.search(r"\b(?:if|unless|whether|when|whenever|not|never|no)\b", sentence, re.I):
+            continue
+        for clause in re.split(r",|\bbut\b|\band (?=said\b)", sentence):
+            clause = clause.strip()
+            if re.match(r"(?:Nobody|Neither|Nothing|None|No)\b", clause):
+                continue
+            # A bare "would" clause loses possible habitual context when
+            # detached from another clause. Only explicit reported intention
+            # remains eligible in that case; do not maintain a time-word list.
+            if (clause != sentence.strip()
+                    and re.match(_SUBJECT + r" would\b", clause)):
+                continue
+            for base in _ACTION_FORMS:
+                # Bounded simple subjects or explicit reported intention;
+                # arbitrary embedded verbs ("denied he would") abstain.
+                marker = r"(?:will|would|plans? to|planned to|intends? to|intended to|(?:is|was|are|were) going to)"
+                subject = r"(?:" + _SUBJECT + r" |(?:" + _SUBJECT + r" )?said (?:he|she|they|we|it) )"
+                match = re.fullmatch(subject + marker + " " + base + r" (.+)", clause)
+                if match:
+                    obj = _action_object(match[1])
+                    if obj:
+                        prospective.add((base, obj))
+    return bool((completed & prospective) - _completed_actions(quote, quote=True)
+                - _possible_quote_completion(quote, completed & prospective))
+
+
 def _validate_integrity(response, material):
     """Validate every response binding, including evidence on rejected cards."""
     expected = {c["card_id"]: c for c in material["cards"]}
@@ -204,7 +309,20 @@ def _validate_integrity(response, material):
                     or not quote.strip() or quote not in source["content"]):
                 raise ValueError("invalid source hash or verbatim quote")
 
-    return [r for r in response["cards"] if r["verdict"] != "supported"]
+    # Interpret only after every original record has passed all binding checks.
+    # Return derived feedback; captured model responses remain byte-faithful.
+    rejected = []
+    for record in response["cards"]:
+        temporal = any(_temporal_contradiction(c["text"], c["quote"]) for c in record["claims"])
+        if temporal:
+            derived = copy.deepcopy(record)
+            derived["verdict"] = "unsupported"
+            derived["reason"] = (record["reason"] + " Temporal evidence mismatch: an affirmative completed action "
+                                 "is paired with only prospective/intended evidence for the same action and object.")
+            rejected.append(derived)
+        elif record["verdict"] != "supported":
+            rejected.append(record)
+    return rejected
 
 
 def _validate(response, material):

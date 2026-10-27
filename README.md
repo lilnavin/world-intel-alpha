@@ -153,6 +153,10 @@ exactly from the retained generation evidence.
 The optional prose correction preserves the remaining citations and card
 membership, and adopts corrected prose only after final acceptance. There is
 no further correction or retry if it fails.
+Some explicit claim/quote contradictions, including simple cases where a stated
+plan is presented as a completed action, are rejected deterministically and use
+that same correction limit. This narrow check abstains on unsupported grammar;
+it is not general proof that every claim follows from its source.
 Missing sources, invalid responses, unsupported final claims, or exhausted
 budget hold the run before briefing, knowledge updates, or delivery. Release
 validation enables both checks; disabled review cannot count as a factual pass.

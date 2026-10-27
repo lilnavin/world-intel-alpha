@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 
-def model_evidence(root=None, *, repaired=False, cleanup=False):
+def model_evidence(root=None, *, repaired=False, cleanup=False, temporal=False):
     summary = {"run_id": "f" * 32, "complete": True, "invocations": []}
     from worldintel import data
     from worldintel.core import grounding_review as g
@@ -12,6 +12,11 @@ def model_evidence(root=None, *, repaired=False, cleanup=False):
                           "body": "Officials opened a bridge on Monday.", "source_ids": ["source:0"]}],
                 "sources": [{"source_id": "source:0", "url": "https://example.test/bridge", "title": "Opening",
                              "content": "Officials opened a bridge on Monday. Traffic can cross."}]}
+    quote = "Officials opened a bridge on Monday."
+    if temporal:
+        material["cards"][0]["body"] = "Morgan initially sought its review."
+        quote = "Morgan said he would seek their review."
+        material["sources"][0]["content"] = quote
     def digest_cards(value):
         for c in value["cards"]:
             c["prose_sha256"] = g._digest(json.dumps({f: c[f] for f in g.FIELDS}, ensure_ascii=False, sort_keys=True))
@@ -22,7 +27,7 @@ def model_evidence(root=None, *, repaired=False, cleanup=False):
         return {"cards": [{"card_id": c["card_id"], "prose_sha256": c["prose_sha256"], "verdict": verdict,
                            "reason": "Source reports the opening.", "claims": [{"field": "body", "text": c["body"],
                             "source_id": source["source_id"], "source_sha256": source["sha256"],
-                            "quote": "Officials opened a bridge on Monday."}]}]}
+                            "quote": quote}]}]}
     generation, bundle = None, None
     if cleanup:
         import copy
@@ -35,13 +40,13 @@ def model_evidence(root=None, *, repaired=False, cleanup=False):
         staged, preflight = g._preflight(generation, bundle)
         material = g._material(staged, bundle)
         material['citation_preflight'] = preflight
-    initial = response(material, "uncertain" if repaired else "supported")
+    initial = response(material, "uncertain" if repaired and not temporal else "supported")
     captures = {"source-review": ("source-review", material, initial)}
     if repaired:
         import copy
         c = material["cards"][0]
         patch = {"cards": [{"card_id": c["card_id"], "prose_sha256": c["prose_sha256"], "headline": "Bridge opened",
-                           "why_it_matters": "Traffic can cross.", "body": " ".join([c["body"]] * 18)}]}
+                           "why_it_matters": "Traffic can cross.", "body": " ".join([quote if temporal else c["body"]] * 18)}]}
         final = copy.deepcopy(material)
         final["cards"][0].update({f: patch["cards"][0][f] for f in g.FIELDS})
         digest_cards(final)
