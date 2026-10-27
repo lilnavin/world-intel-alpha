@@ -15,4 +15,10 @@ exactly. Verdict is supported ONLY if every factual claim is supported. Otherwis
 use unsupported or uncertain and explain briefly. Enumerate factual claims using
 exact nonempty substrings of ONE named field, with the cited source_id, its exact
 sha256 and a verbatim supporting source quote. Every supported card must have
-at least one claim. Do not invent quotations, IDs or hashes. Return schema JSON.
+at least one claim, and every claim on a supported card requires a nonempty
+literal supporting quote. Only for an unsupported or uncertain card, use the
+exact empty string as quote when no supporting passage exists. This declares
+missing evidence and never supports a claim. Keep the exact field/text binding,
+cited source_id and source sha256 even for an empty quote. Whitespace is not an
+empty quote; every nonempty quote must be literal source text. Do not invent
+quotations, IDs or hashes. Return schema JSON.

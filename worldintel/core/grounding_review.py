@@ -305,8 +305,11 @@ def _validate_integrity(response, material):
             if not isinstance(sid, str) or sid not in card["source_ids"]:
                 raise ValueError("claim source is not cited by card")
             source = sources[sid]
+            # Only an originally rejected record may declare absent evidence.
+            # Empty negative feedback never supplies support for a claim.
+            missing_quote = record["verdict"] in ("unsupported", "uncertain") and quote == ""
             if (claim["source_sha256"] != source["sha256"] or not isinstance(quote, str)
-                    or not quote.strip() or quote not in source["content"]):
+                    or (not missing_quote and (not quote.strip() or quote not in source["content"]))):
                 raise ValueError("invalid source hash or verbatim quote")
 
     # Interpret only after every original record has passed all binding checks.

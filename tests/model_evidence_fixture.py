@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 
-def model_evidence(root=None, *, repaired=False, cleanup=False, temporal=False):
+def model_evidence(root=None, *, repaired=False, cleanup=False, temporal=False, negative=False):
     summary = {"run_id": "f" * 32, "complete": True, "invocations": []}
     from worldintel import data
     from worldintel.core import grounding_review as g
@@ -41,6 +41,8 @@ def model_evidence(root=None, *, repaired=False, cleanup=False, temporal=False):
         material = g._material(staged, bundle)
         material['citation_preflight'] = preflight
     initial = response(material, "uncertain" if repaired and not temporal else "supported")
+    if negative:
+        initial["cards"][0]["claims"][0]["quote"] = ""
     captures = {"source-review": ("source-review", material, initial)}
     if repaired:
         import copy
