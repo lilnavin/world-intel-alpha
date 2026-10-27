@@ -91,7 +91,7 @@ def validate_result(code, stdout, stderr, commit, root):
     return errors
 
 
-def validate_model_evidence(directory, summary, review=None):
+def validate_model_evidence(directory, summary, review=None, *, cfg=None):
     """Verify retained private bytes against the run summary and each manifest."""
     try:
         directory = Path(directory).resolve(strict=True)
@@ -134,13 +134,13 @@ def validate_model_evidence(directory, summary, review=None):
                 {p.relative_to(directory).as_posix() for p in paths if p.is_file()} != expected):
             raise ValueError
         if review is not None:
-            _validate_review_evidence(directory, records, review)
+            _validate_review_evidence(directory, records, review, cfg=cfg)
         return []
     except (OSError, ValueError, KeyError, TypeError, AttributeError, IndexError):
         return ['private model evidence integrity failed']
 
 
-def _validate_review_evidence(directory, records, audit):
+def _validate_review_evidence(directory, records, audit, *, cfg=None):
     """Bind the captured one- or three-call chain to the actual final material."""
     from worldintel import data
     from worldintel.core import grounding_review as g
@@ -186,7 +186,7 @@ def _validate_review_evidence(directory, records, audit):
                 rawcaptures.append({'pass_name': record['pass_name'],
                                     'prompt': (folder / 'stdin.bin').read_bytes().decode('utf-8'),
                                     'output': json.loads((folder / 'output.bin').read_bytes())})
-        g.validate_cleanup_evidence(material, rawcaptures)
+        g.validate_cleanup_evidence(material, rawcaptures, cfg=cfg)
     original = {'briefing': {}}
     source_ids = set()
     for source in material['sources']:
@@ -284,6 +284,7 @@ def main(argv=None):
             profile.setdefault('analysis', {}).update(source_review_enabled=True, source_review_repair_enabled=True)
             cfg_path = scratch / "profile.yaml"
             cfg_path.write_text(yaml.safe_dump(profile), encoding="utf-8")
+            review_cfg = config.load(cfg_path)
             private = scratch / 'data' / 'model-evidence'
             private.mkdir(parents=True)
             def isolated_snapshot():
@@ -330,7 +331,7 @@ def main(argv=None):
                         report['model_evidence_root'] = str(target)
                         if 'dry_summary' in report:
                             report['errors'].extend(validate_model_evidence(
-                                target, report['dry_summary'].get('model_evidence', {}), report['dry_summary'].get('source_review', {})))
+                                target, report['dry_summary'].get('model_evidence', {}), report['dry_summary'].get('source_review', {}), cfg=review_cfg))
         if any(snapshot(path) != previous for path, previous in before.items()):
             report["errors"].append("protected configuration/runtime paths changed")
         if git("rev-parse", "HEAD") != commit or git("status", "--porcelain", "--untracked-files=all"):
@@ -340,7 +341,7 @@ def main(argv=None):
             report['errors'].append('retained private model evidence unavailable')
         elif 'dry_summary' in report:
             report['errors'].extend(validate_model_evidence(
-                report['model_evidence_root'], report['dry_summary'].get('model_evidence', {}), report['dry_summary'].get('source_review', {})))
+                report['model_evidence_root'], report['dry_summary'].get('model_evidence', {}), report['dry_summary'].get('source_review', {}), cfg=review_cfg))
         if not report["errors"]:
             report["status"] = "PASS"
     except Exception as exc:

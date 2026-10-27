@@ -23,9 +23,9 @@ def _digest(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _material(result, bundle):
+def _material(result, bundle, *, cfg=None):
     briefing = result["briefing"]
-    sections = [(key, briefing.get(key, [])) for key in ("brief", *config.get().local_desk_ids)]
+    sections = [(key, briefing.get(key, [])) for key in ("brief", *(cfg if cfg is not None else config.get()).local_desk_ids)]
     sections.append(("finance.brief", briefing.get("finance", {}).get("brief", [])))
     cards, sources, by_url = [], {}, {}
     for index, source in enumerate(bundle.get("news", [])):
@@ -65,7 +65,7 @@ def _material(result, bundle):
     return {"cards": cards, "sources": list(sources.values())}
 
 
-def _preflight(result, bundle):
+def _preflight(result, bundle, *, cfg=None):
     """Stage only uniquely selected empty extras; preserve exact citation objects."""
     candidate, changes = copy.deepcopy(result), []
     by_url = {}
@@ -73,7 +73,7 @@ def _preflight(result, bundle):
         if isinstance(source, dict) and isinstance(source.get("url"), str):
             by_url.setdefault(_citation_identity(source["url"]), []).append((index, source))
     briefing = candidate["briefing"]
-    sections = [(key, briefing.get(key, [])) for key in ("brief", *config.get().local_desk_ids)]
+    sections = [(key, briefing.get(key, [])) for key in ("brief", *(cfg if cfg is not None else config.get()).local_desk_ids)]
     sections.append(("finance.brief", briefing.get("finance", {}).get("brief", [])))
     for section, cards in sections:
         if not isinstance(cards, list):
@@ -130,11 +130,12 @@ def validate_cleanup_audit(material, audit):
         raise ValueError("citation cleanup status binding mismatch")
 
 
-def validate_cleanup_evidence(material, rawcaptures):
+def validate_cleanup_evidence(material, rawcaptures, *, cfg=None):
     """Recompute cleanup from captured selected input and exact generation cards.
 
     Non-exact rewrite/coverage derivations are deliberately refused. Byte/manifest
     integrity of rawcaptures must be checked by the caller before this function.
+    cfg must describe the captured run; omitted cfg uses the existing context.
     """
     if "citation_preflight" not in material:
         return
@@ -152,8 +153,8 @@ def validate_cleanup_evidence(material, rawcaptures):
         for key in ("finance", "post_earnings"):
             if key in finance[0]["output"]["briefing"]:
                 raw["briefing"][key] = copy.deepcopy(finance[0]["output"]["briefing"][key])
-        candidate, preflight = _preflight(raw, bundle)
-        expected = _material(candidate, bundle)
+        candidate, preflight = _preflight(raw, bundle, cfg=cfg)
+        expected = _material(candidate, bundle, cfg=cfg)
         if preflight is None:
             raise ValueError("cleanup absent from generation")
         expected["citation_preflight"] = preflight

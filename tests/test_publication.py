@@ -85,12 +85,12 @@ def test_evidence_hash_exit_commit_command_and_minimal_limit(evidence):
     with pytest.raises(ValueError): p.evidence_gate('replay', data, directory, CANDIDATE)
 
 
-def minimal_report(evidence, root):
+def minimal_report(evidence, root, *, cleanup=False):
     data, directory = evidence
     summary = {'schema_version': 1, 'dry': True, 'source_dirty': False,
                'source_review': {'status': 'accepted', 'attempted': True, 'cards_reviewed': 1, 'repair_attempted': False, 'review_calls': 1, 'corrected_cards': 0, 'timeout_s': 100, 'reason': None,
                                   'scope': 'final full story cards: headline, why_it_matters, body; not whole-brief verification'},
-               'model_evidence': model_evidence(directory / 'retained-model-evidence'),
+               'model_evidence': model_evidence(directory / 'retained-model-evidence', cleanup=cleanup),
                'source_commit': HEAD, 'source_file': str(root / 'worldintel/run.py'),
                'generation': 'rendered', 'handoff': 'disabled', 'delivery_confirmed': False,
                'quality': {'overall': 'complete', 'unresolved_coverage_events': 0,
@@ -101,6 +101,12 @@ def minimal_report(evidence, root):
                'rewrite': {'attempted': False, 'error': None, 'skipped': False, 'remaining': 0},
                'rendered': {'chars': 10, 'text_chars': 10, 'world_cards': 1,
                             'input_news': 1, 'sha256': 'c' * 64}}
+    if cleanup:
+        folder = directory / 'retained-model-evidence' / ('f' * 32) / ('2' * 32)
+        material = json.loads((folder / 'stdin.bin').read_text().split('\nINPUT_JSON\n')[1])
+        preflight = material['citation_preflight']
+        summary['source_review'].update(citation_preflight_sha256=preflight['sha256'],
+                                        citation_preflight_cards=len(preflight['cards']))
     report = {'schema_version': 2, 'kind': 'minimal-live-dry-run', 'status': 'PASS',
               'model_evidence_root': str(directory / 'retained-model-evidence' / ('f' * 32)),
               'errors': [], 'source_commit': HEAD, 'source_dirty': False,
@@ -442,3 +448,29 @@ def test_documentation_policy_checks_license_and_fixture_provenance(tmp_path):
     marker.write_text('Invented demonstration data; not a captured briefing.')
     (tmp_path / 'LICENSE').write_text('')
     with pytest.raises(ValueError): p.documentation_policy(tmp_path)
+
+
+def test_standalone_publication_cleanup_uses_trusted_minimal_profile(evidence, tmp_path):
+    import os
+    root = tmp_path / 'candidate'
+    minimal_report(evidence, root, cleanup=True)
+    data, directory = evidence
+    payload = directory / 'publication-input.json'
+    payload.write_text(json.dumps(data))
+    project = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    env.pop('WORLD_INTEL_CONFIG', None)
+    env.update(PYTHONPATH=os.pathsep.join((str(project), str(project / 'tools'))),
+               USERPROFILE=str(tmp_path), HOME=str(tmp_path))
+    code = """
+import json, os, sys
+from pathlib import Path
+from worldintel import config
+import check_publication as p
+assert config._CACHE is None and 'WORLD_INTEL_CONFIG' not in os.environ
+p.evidence_gate('minimal-dry-run', json.load(open(sys.argv[1])), Path(sys.argv[2]), sys.argv[3], Path(sys.argv[4]))
+assert config._CACHE is None
+"""
+    completed = subprocess.run([sys.executable, '-c', code, str(payload), str(directory), HEAD, str(root)],
+                               cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
+    assert completed.returncode == 0, completed.stdout + completed.stderr

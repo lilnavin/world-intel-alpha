@@ -191,3 +191,34 @@ def test_cleanup_evidence_replay_rejects_malformed_anchor_tier(tmp_path, tier):
     (folder / 'manifest.json').write_text(json.dumps(manifest))
     record['manifest_sha256'] = hashlib.sha256((folder / 'manifest.json').read_bytes()).hexdigest()
     assert validate_model_evidence(root, summary, status)
+
+
+def test_standalone_cleanup_validation_uses_explicit_profile_without_global_config(tmp_path):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+    from worldintel import config
+    summary = model_evidence(tmp_path, cleanup=True)
+    root = tmp_path / summary['run_id']
+    payload = tmp_path / 'validation.json'
+    payload.write_text(json.dumps({'summary': summary, 'audit': cleanup_status(root, summary, False)}))
+    profile = Path(__file__).resolve().parents[1] / 'worldintel/data/profiles/example.minimal.yaml'
+    env = os.environ.copy()
+    env.pop('WORLD_INTEL_CONFIG', None)
+    env.update(PYTHONPATH=str(profile.parents[3]), USERPROFILE=str(tmp_path), HOME=str(tmp_path))
+    code = """
+import json, os, sys
+from worldintel import config
+from tools.verify_minimal_run import validate_model_evidence
+assert config._CACHE is None and 'WORLD_INTEL_CONFIG' not in os.environ
+payload = json.load(open(sys.argv[1]))
+cfg = config.load(sys.argv[3])
+assert config._CACHE is None
+errors = validate_model_evidence(sys.argv[2], payload['summary'], payload['audit'], cfg=cfg)
+assert errors == [], errors
+assert config._CACHE is None
+"""
+    completed = subprocess.run([sys.executable, '-c', code, str(payload), str(root), str(profile)],
+                               cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
+    assert completed.returncode == 0, completed.stdout + completed.stderr

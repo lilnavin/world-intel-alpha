@@ -430,12 +430,15 @@ def minimal_report(entry, directory, head, root, path):
         need(not verify_minimal_run.validate_result(report['exit_code'], '',
              verify_minimal_run.PREFIX + json.dumps(report['dry_summary']), head, root),
              'minimal report dry summary invalid')
+        from worldintel import config, data
+        with data.as_file('profiles/example.minimal.yaml') as profile:
+            review_cfg = config.load(profile)
         need(isinstance(report['model_evidence_root'], str)
              and Path(report['model_evidence_root']).is_absolute()
              and not Path(report['model_evidence_root']).resolve().is_relative_to(root.resolve())
              and not verify_minimal_run.validate_model_evidence(
                  report['model_evidence_root'], report['dry_summary']['model_evidence'],
-                 report['dry_summary']['source_review']),
+                 report['dry_summary']['source_review'], cfg=review_cfg),
              'minimal report private model evidence invalid')
     except (ValueError, TypeError, KeyError) as exc:
         if isinstance(exc, GateError):
