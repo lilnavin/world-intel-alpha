@@ -1,7 +1,7 @@
 # World Intel configurable briefing candidate
 
-Private development candidate for the configurable World Intel briefing skill.
-This snapshot is not ready for production or public release.
+Development candidate for the configurable World Intel briefing skill.
+Live output remains experimental; this is not a production-ready system.
 
 Configuration now drives runtime paths, sources, SEC lane switches, tuning, and
 news desks. The prompt/schema generators preserve the reference profile's exact
@@ -10,9 +10,9 @@ Dry runs do not publish or replace briefing files or knowledge state. Private
 model evidence can be retained separately for diagnosis and release review.
 The audited predecessor passed clean installation and Windows/Linux CI, with
 historical minimal live dry-run evidence. Those results do not qualify changed
-code for release. This candidate still needs final-commit checks, fresh content
+code for release. Qualification requires final-commit checks, fresh content
 acceptance, a frozen scheduled trial, and explicit publication approval.
-Do not deploy this candidate yet.
+Keep unqualified candidates in isolated private testing.
 
 Three example profiles live in `config/`: `minimal` (world news, no SEC), `world`
 (world/US/finance, no SEC), and `full` (multi-country reference profile). Copy a
@@ -167,6 +167,11 @@ scoreboard data, other finance narrative, or knowledge facts. Valid evidence
 quotes and a model's supported verdict reduce risk; they do not prove that all
 claims were identified or correctly checked. Inspect cited reporting before
 owner content acceptance.
+
+With source review enabled, model-authored KB delta proposals remain in private
+evidence but are not applied: card review does not cover those proposals.
+Deterministic state updates and daily artifact archiving continue. Existing KB
+content and other unreviewed fields are not retrospectively certified.
 
 Exact CLI stdin/schema bytes and raw outputs are private evidence, separate from replay
 capsules and briefing attachments. Keep the configured data directory outside

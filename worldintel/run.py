@@ -1031,7 +1031,18 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
         persist_scoreboard()
 
     deltas = result.get("kb_deltas") or {}
-    if deltas and not dry:
+    if review_enabled:
+        # Card review does not review model-authored KB proposals. Retain them
+        # in the result/evidence, but never ingest them as approved knowledge.
+        proposals = {"status": "held_unreviewed" if deltas else "none",
+                     "proposed": bool(deltas), "applied": False,
+                     "sha256": hashlib.sha256(json.dumps(
+                         deltas, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode("utf-8")).hexdigest() if deltas else None}
+        result["kb_proposals"] = receipt["kb_proposals"] = proposals
+        if deltas:
+            log("model kb_deltas withheld: proposals are outside reviewed card scope")
+    elif deltas and not dry:
         try:
             changed = kb.apply_deltas(KB_ROOT, deltas)
             log(f"kb updated: {len(changed)} file(s)")
@@ -1094,6 +1105,8 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
                          "world_cards": len(result.get("briefing", {}).get("brief") or []),
                          "input_news": len(bundle.get("news") or [])},
         }
+        if review_enabled:
+            summary["kb_proposals"] = receipt["kb_proposals"]
         print("WORLD_INTEL_DRY_SUMMARY:" + json.dumps(summary), file=sys.stderr, flush=True)
 
     # Record which reporters this brief had the chance to cover so the same
