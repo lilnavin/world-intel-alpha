@@ -140,8 +140,19 @@ analysis deadline, with at most 120 seconds per call. With only review enabled,
 it adds at most one invocation and holds unsupported or uncertain cards. The
 optional repair setting permits one correction of identified unsupported cards
 and one final review of every card: at most three added invocations in total.
-It preserves citations and card membership, and adopts corrected prose only
-after final acceptance. There is no further correction or retry if it fails.
+Before review, a staged preflight can remove an extra citation only when it
+uniquely matches a selected source with no captured article body and the card
+retains a substantive full-text tier-1/2 source. Unknown or ambiguous citations,
+and cards without a usable remaining source, still hold the run. The private
+evidence binds the original and retained citation lists; all claims must then
+pass review against the retained sources. Citation cleanup is adopted only
+after acceptance. It does not remove a card or change its prose.
+Release validation refuses cleanup whose original card cannot be reconstructed
+exactly from the retained generation evidence.
+
+The optional prose correction preserves the remaining citations and card
+membership, and adopts corrected prose only after final acceptance. There is
+no further correction or retry if it fails.
 Missing sources, invalid responses, unsupported final claims, or exhausted
 budget hold the run before briefing, knowledge updates, or delivery. Release
 validation enables both checks; disabled review cannot count as a factual pass.

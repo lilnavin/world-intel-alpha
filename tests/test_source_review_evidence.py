@@ -80,3 +80,114 @@ def test_windows_prompt_stdin_bytes_preserve_platform_line_endings(tmp_path):
         (folder / 'manifest.json').write_text(json.dumps(manifest))
         record['manifest_sha256'] = hashlib.sha256((folder / 'manifest.json').read_bytes()).hexdigest()
     assert validate_model_evidence(root, summary, audit(True)) == []
+
+
+@pytest.mark.parametrize('repaired', [False, True])
+def test_cleanup_chain_recomputes_actual_selected_input_and_raw_cards(tmp_path, repaired):
+    from tools.verify_minimal_run import validate_model_evidence
+    summary = model_evidence(tmp_path, repaired=repaired, cleanup=True)
+    status = cleanup_status(tmp_path / summary['run_id'], summary, repaired)
+    assert validate_model_evidence(tmp_path / summary['run_id'], summary, status) == []
+
+
+@pytest.mark.parametrize('change', ['audit-removal', 'invent-original', 'available-source', 'missing-anchor',
+                                    'raw-prose', 'raw-citation', 'selected-duplicate', 'final-audit'])
+def test_rehashed_cleanup_forgery_rejected(tmp_path, change):
+    import hashlib
+    from tools.verify_minimal_run import validate_model_evidence
+    from worldintel.core import grounding_review as g
+    summary = model_evidence(tmp_path, repaired=True, cleanup=True)
+    root = tmp_path / summary['run_id']
+    status = cleanup_status(root, summary, True)
+    index = 4 if change == 'final-audit' else 2 if change in ('audit-removal', 'invent-original') else 0
+    filename = 'output.bin' if change in ('raw-prose', 'raw-citation') else 'stdin.bin'
+    record = summary['invocations'][index]
+    folder = root / record['invocation_id']
+    raw = (folder / filename).read_text()
+    if index in (2, 4):
+        prefix, body = raw.split('\nINPUT_JSON\n')
+        material = json.loads(body)
+        entry = material['citation_preflight']['cards'][0]
+        if change == 'audit-removal': entry['removed'] = []
+        elif change == 'invent-original': entry['original_sources'].append({'url': 'https://invented.test'})
+        else: entry['retained_sources'].reverse(); entry['prose_sha256'] = 'a' * 64
+        material['citation_preflight']['sha256'] = g._digest(json.dumps(material['citation_preflight']['cards'], ensure_ascii=False, sort_keys=True))
+        raw = prefix + '\nINPUT_JSON\n' + json.dumps(material)
+    elif filename == 'output.bin':
+        value = json.loads(raw)
+        card = value['briefing']['brief'][0]
+        if change == 'raw-prose': card['body'] = 'Invented original prose.'
+        else: card['sources'].reverse()
+        raw = json.dumps(value)
+    else:
+        prefix, body = raw.split('\n## TODAY (BUNDLE)\n')
+        bundle = json.loads(body)
+        if change == 'available-source': bundle['news'][1]['content'] = 'Available evidence'
+        elif change == 'missing-anchor': bundle['news'][0]['tier'] = 3
+        else: bundle['news'].append(copy.deepcopy(bundle['news'][1]))
+        raw = prefix + '\n## TODAY (BUNDLE)\n' + json.dumps(bundle)
+    blob = raw.encode()
+    (folder / filename).write_bytes(blob)
+    manifest = json.loads((folder / 'manifest.json').read_bytes())
+    manifest['files'][filename] = {'bytes': len(blob), 'sha256': hashlib.sha256(blob).hexdigest()}
+    (folder / 'manifest.json').write_text(json.dumps(manifest))
+    record['manifest_sha256'] = hashlib.sha256((folder / 'manifest.json').read_bytes()).hexdigest()
+    assert validate_model_evidence(root, summary, status)
+
+
+def cleanup_status(root, summary, repaired):
+    status = audit(repaired)
+    folder = root / summary['invocations'][2]['invocation_id']
+    material = json.loads((folder / 'stdin.bin').read_text().split('\nINPUT_JSON\n')[1])
+    cleanup = material['citation_preflight']
+    status.update(citation_preflight_sha256=cleanup['sha256'], citation_preflight_cards=len(cleanup['cards']))
+    return status
+
+
+def test_cleanup_audit_cannot_be_stripped_from_rehashed_captures():
+    from worldintel.core import grounding_review as g
+    status = audit()
+    status.update(citation_preflight_sha256='a' * 64, citation_preflight_cards=1)
+    with pytest.raises(ValueError):
+        g.validate_cleanup_audit({'cards': [], 'sources': []}, status)
+
+
+def test_stripping_all_cleanup_capture_fields_still_fails_retained_status(tmp_path):
+    import hashlib
+    from tools.verify_minimal_run import validate_model_evidence
+    summary = model_evidence(tmp_path, repaired=True, cleanup=True)
+    root = tmp_path / summary['run_id']
+    status = cleanup_status(root, summary, True)
+    for record in summary['invocations'][2:]:
+        folder = root / record['invocation_id']
+        prefix, body = (folder / 'stdin.bin').read_text().split('\nINPUT_JSON\n')
+        material = json.loads(body)
+        material.pop('citation_preflight', None)
+        blob = (prefix + '\nINPUT_JSON\n' + json.dumps(material)).encode()
+        (folder / 'stdin.bin').write_bytes(blob)
+        manifest = json.loads((folder / 'manifest.json').read_bytes())
+        manifest['files']['stdin.bin'] = {'bytes': len(blob), 'sha256': hashlib.sha256(blob).hexdigest()}
+        (folder / 'manifest.json').write_text(json.dumps(manifest))
+        record['manifest_sha256'] = hashlib.sha256((folder / 'manifest.json').read_bytes()).hexdigest()
+    assert validate_model_evidence(root, summary, status)
+
+
+@pytest.mark.parametrize('tier', [True, 1.9, 2.9, '1'])
+def test_cleanup_evidence_replay_rejects_malformed_anchor_tier(tmp_path, tier):
+    import hashlib
+    from tools.verify_minimal_run import validate_model_evidence
+    summary = model_evidence(tmp_path, cleanup=True)
+    root = tmp_path / summary['run_id']
+    status = cleanup_status(root, summary, False)
+    record = summary['invocations'][0]
+    folder = root / record['invocation_id']
+    prefix, body = (folder / 'stdin.bin').read_text().split('\n## TODAY (BUNDLE)\n')
+    bundle = json.loads(body)
+    bundle['news'][0]['tier'] = tier
+    blob = (prefix + '\n## TODAY (BUNDLE)\n' + json.dumps(bundle)).encode()
+    (folder / 'stdin.bin').write_bytes(blob)
+    manifest = json.loads((folder / 'manifest.json').read_bytes())
+    manifest['files']['stdin.bin'] = {'bytes': len(blob), 'sha256': hashlib.sha256(blob).hexdigest()}
+    (folder / 'manifest.json').write_text(json.dumps(manifest))
+    record['manifest_sha256'] = hashlib.sha256((folder / 'manifest.json').read_bytes()).hexdigest()
+    assert validate_model_evidence(root, summary, status)

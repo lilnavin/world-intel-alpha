@@ -174,9 +174,19 @@ def _validate_review_evidence(directory, records, audit):
         captures.append((material, json.loads((folder / 'output.bin').read_bytes()), timeout))
     material, initial, _ = captures[0]
     # Recheck hashes against actual captured prose/documents before using feedback.
-    if (set(material) != {'cards', 'sources'} or len(material['cards']) != audit['cards_reviewed']
+    if (set(material) not in ({'cards', 'sources'}, {'cards', 'sources', 'citation_preflight'}) or len(material['cards']) != audit['cards_reviewed']
             or not 1 <= len(material['cards']) <= 24 or not 1 <= len(material['sources']) <= 48):
         raise ValueError('review material mismatch')
+    g.validate_cleanup_audit(material, audit)
+    if 'citation_preflight' in material:
+        rawcaptures = []
+        for record in records:
+            if record['pass_name'] in ('world', 'finance'):
+                folder = directory / record['invocation_id']
+                rawcaptures.append({'pass_name': record['pass_name'],
+                                    'prompt': (folder / 'stdin.bin').read_bytes().decode('utf-8'),
+                                    'output': json.loads((folder / 'output.bin').read_bytes())})
+        g.validate_cleanup_evidence(material, rawcaptures)
     original = {'briefing': {}}
     source_ids = set()
     for source in material['sources']:

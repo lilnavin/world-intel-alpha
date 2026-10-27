@@ -13,6 +13,7 @@ import time
 from worldintel import config, data
 from worldintel.core.quality_gate import _citation_identity, META_RE
 from worldintel.core.coverage_gate import _clean
+from worldintel.core.enrich import substantive_content
 
 SCOPE = "final full story cards: headline, why_it_matters, body; not whole-brief verification"
 FIELDS = ("headline", "why_it_matters", "body")
@@ -62,6 +63,104 @@ def _material(result, bundle):
     if not cards:
         raise ValueError("no full story cards to review")
     return {"cards": cards, "sources": list(sources.values())}
+
+
+def _preflight(result, bundle):
+    """Stage only uniquely selected empty extras; preserve exact citation objects."""
+    candidate, changes = copy.deepcopy(result), []
+    by_url = {}
+    for index, source in enumerate(bundle.get("news", [])):
+        if isinstance(source, dict) and isinstance(source.get("url"), str):
+            by_url.setdefault(_citation_identity(source["url"]), []).append((index, source))
+    briefing = candidate["briefing"]
+    sections = [(key, briefing.get(key, [])) for key in ("brief", *config.get().local_desk_ids)]
+    sections.append(("finance.brief", briefing.get("finance", {}).get("brief", [])))
+    for section, cards in sections:
+        if not isinstance(cards, list):
+            raise ValueError("invalid card section")
+        for index, card in enumerate(cards):
+            citations = card.get("sources") if isinstance(card, dict) else None
+            if not isinstance(citations, list) or not citations:
+                raise ValueError("missing cited source")
+            retained, removed, anchor, substantive = [], [], False, True
+            for citation in citations:
+                url = citation.get("url") if isinstance(citation, dict) else None
+                matches = by_url.get(_citation_identity(url), []) if isinstance(url, str) else []
+                if len(matches) != 1:
+                    raise ValueError("missing or ambiguous cited selected source")
+                source_index, source = matches[0]
+                text = source.get("content")
+                if text is None or (isinstance(text, str) and not text.strip()):
+                    removed.append({"source_id": f"source:{source_index}", "selected_source": copy.deepcopy(source)})
+                else:
+                    if not isinstance(text, str):
+                        raise ValueError("malformed cited full text")
+                    retained.append(citation)
+                    substantive &= substantive_content(text)
+                    tier = source.get("tier")
+                    anchor |= type(tier) is int and tier in (1, 2) and substantive_content(text)
+            if removed:
+                if not substantive:
+                    raise ValueError("citation cleanup retains inadequate full text")
+                if not anchor:
+                    raise ValueError("citation cleanup lacks substantive tier-1/2 anchor")
+                prose = {f: card[f] for f in FIELDS}
+                changes.append({"card_id": f"{section}:{index}",
+                                "prose_sha256": _digest(json.dumps(prose, ensure_ascii=False, sort_keys=True)),
+                                "original_sources": copy.deepcopy(citations), "removed": removed,
+                                "retained_sources": copy.deepcopy(retained)})
+                card["sources"] = retained
+    audit = {"cards": changes, "sha256": _digest(json.dumps(changes, ensure_ascii=False, sort_keys=True))} if changes else None
+    return candidate, audit
+
+
+def validate_cleanup_audit(material, audit):
+    """Bind optional captured cleanup to the independently retained run status."""
+    cleanup = material.get("citation_preflight")
+    if cleanup is None:
+        if audit.get("citation_preflight_sha256") is not None or audit.get("citation_preflight_cards", 0) != 0:
+            raise ValueError("missing status-bound citation cleanup")
+        return
+    if (not isinstance(cleanup, dict) or set(cleanup) != {"cards", "sha256"}
+            or not isinstance(cleanup["cards"], list) or not cleanup["cards"]
+            or cleanup["sha256"] != _digest(json.dumps(cleanup["cards"], ensure_ascii=False, sort_keys=True))
+            or audit.get("citation_preflight_sha256") != cleanup["sha256"]
+            or type(audit.get("citation_preflight_cards")) is not int
+            or audit["citation_preflight_cards"] != len(cleanup["cards"])):
+        raise ValueError("citation cleanup status binding mismatch")
+
+
+def validate_cleanup_evidence(material, rawcaptures):
+    """Recompute cleanup from captured selected input and exact generation cards.
+
+    Non-exact rewrite/coverage derivations are deliberately refused. Byte/manifest
+    integrity of rawcaptures must be checked by the caller before this function.
+    """
+    if "citation_preflight" not in material:
+        return
+    try:
+        world = [r for r in rawcaptures if r["pass_name"] == "world"]
+        finance = [r for r in rawcaptures if r["pass_name"] == "finance"]
+        if len(world) != 1 or len(finance) != 1:
+            raise ValueError("cleanup generation capture missing or ambiguous")
+        marker = "\n## TODAY (BUNDLE)\n"
+        prompt = world[0]["prompt"].replace("\r\n", "\n")
+        if prompt.count(marker) != 1:
+            raise ValueError("cleanup selected input ambiguous")
+        bundle = json.loads(prompt.split(marker)[1])
+        raw = {"briefing": copy.deepcopy(world[0]["output"]["briefing"])}
+        for key in ("finance", "post_earnings"):
+            if key in finance[0]["output"]["briefing"]:
+                raw["briefing"][key] = copy.deepcopy(finance[0]["output"]["briefing"][key])
+        candidate, preflight = _preflight(raw, bundle)
+        expected = _material(candidate, bundle)
+        if preflight is None:
+            raise ValueError("cleanup absent from generation")
+        expected["citation_preflight"] = preflight
+        if material != expected:
+            raise ValueError("cleanup does not bind exact captured generation and selected input")
+    except (KeyError, TypeError, IndexError, AttributeError) as exc:
+        raise ValueError("malformed cleanup evidence") from exc
 
 
 def _validate_integrity(response, material):
@@ -163,7 +262,7 @@ def review(result, bundle, *, review_fn, deadline, repair_fn=None, clock=time.mo
     """One review, optionally one scoped correction and one final all-card review."""
     audit = {"status": "hold", "scope": SCOPE, "attempted": False, "cards_reviewed": 0,
              "timeout_s": 0, "reason": None, "repair_attempted": False, "review_calls": 0,
-             "corrected_cards": 0}
+             "corrected_cards": 0, "citation_preflight_sha256": None, "citation_preflight_cards": 0}
     def call(name, material, callback):
         prompt = _prompt(name, material)
         timeout = min(120, max(0, deadline - clock()))
@@ -180,22 +279,27 @@ def review(result, bundle, *, review_fn, deadline, repair_fn=None, clock=time.mo
             raise ValueError("analysis deadline exceeded")
         return response
     try:
-        material = _material(result, bundle)
+        candidate, preflight = _preflight(result, bundle)
+        material = _material(candidate, bundle)
+        if preflight is not None:
+            material["citation_preflight"] = preflight
+            audit.update(citation_preflight_sha256=preflight["sha256"], citation_preflight_cards=len(preflight["cards"]))
         response = call("source-review", material, review_fn)
         rejected = _validate_integrity(response, material)
-        candidate = result
         if rejected:
             if repair_fn is None:
                 raise ValueError("unsupported or uncertain card")
             patches = call("source-correction", _correction_material(material, response), repair_fn)
-            candidate = _apply_corrections(result, material, rejected, patches)
+            candidate = _apply_corrections(candidate, material, rejected, patches)
             final_material = _material(candidate, bundle)
+            if preflight is not None:
+                final_material["citation_preflight"] = preflight
             _validate(call("source-review", final_material, review_fn), final_material)
-            # All checks have completed before any caller-owned prose is adopted.
-            for record in rejected:
-                cid = record["card_id"]
-                _card(result, cid).update({f: _card(candidate, cid)[f] for f in FIELDS})
             audit["corrected_cards"] = len(rejected)
+        # Adopt all staged prose/citations only after every card is accepted.
+        for card in material["cards"]:
+            cid = card["card_id"]
+            _card(result, cid).update({f: _card(candidate, cid)[f] for f in (*FIELDS, "sources")})
         audit.update(status="accepted", cards_reviewed=len(material["cards"]))
     except ValueError as exc:
         # Locally generated messages contain no source text; model errors stay private.

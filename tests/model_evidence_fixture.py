@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 
-def model_evidence(root=None, *, repaired=False):
+def model_evidence(root=None, *, repaired=False, cleanup=False):
     summary = {"run_id": "f" * 32, "complete": True, "invocations": []}
     from worldintel import data
     from worldintel.core import grounding_review as g
@@ -23,6 +23,18 @@ def model_evidence(root=None, *, repaired=False):
                            "reason": "Source reports the opening.", "claims": [{"field": "body", "text": c["body"],
                             "source_id": source["source_id"], "source_sha256": source["sha256"],
                             "quote": "Officials opened a bridge on Monday."}]}]}
+    generation, bundle = None, None
+    if cleanup:
+        import copy
+        generation = {'briefing': {'brief': [{**{f: material['cards'][0][f] for f in g.FIELDS},
+                       'sources': [{'url': 'https://example.test/bridge'}, {'url': 'https://example.test/empty'}]}]}}
+        bundle = {'news': [{'url': 'https://example.test/bridge', 'title': 'Opening', 'tier': 1,
+                           'content': material['sources'][0]['content'] + ' reporting' * 150},
+                          {'url': 'https://example.test/empty', 'tier': 1, 'content': '',
+                           'enrichment': {'reason': 'below_content_threshold'}}]}
+        staged, preflight = g._preflight(generation, bundle)
+        material = g._material(staged, bundle)
+        material['citation_preflight'] = preflight
     initial = response(material, "uncertain" if repaired else "supported")
     captures = {"source-review": ("source-review", material, initial)}
     if repaired:
@@ -41,6 +53,11 @@ def model_evidence(root=None, *, repaired=False):
         files = {}
         blobs = {"stdin.bin": b"synthetic prompt", "schema.bin": b"{}", "output.bin": b"{}",
                  "stdout.bin": b"", "stderr.bin": b""}
+        if cleanup and name == 'world':
+            blobs['stdin.bin'] = ('synthetic world context\n## TODAY (BUNDLE)\n' + json.dumps(bundle)).encode()
+            blobs['output.bin'] = json.dumps(generation).encode()
+        elif cleanup and name == 'finance':
+            blobs['output.bin'] = json.dumps({'briefing': {'finance': {'brief': []}}}).encode()
         if name in captures:
             template, value, output = captures[name]
             blobs["stdin.bin"] = g._prompt(template, value).encode("utf-8")
