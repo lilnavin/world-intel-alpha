@@ -97,7 +97,11 @@ def recognition_reason(item):
     direct_missile_harm = (re.search(r"\bairport\b", title)
                            and re.search(r"\b(?:missile|drone)\w*\b", title)
                            and re.search(r"\b(?:kill\w*|dead|death\w*|injur\w*)\b", title))
-    if (route_security(item) or direct_missile_harm) and not unrelated_security_context:
+    foreground_aviation = (not _foreground_action(item) or re.search(
+        r"\b(?:aircraft|airliner|airplane|plane|flight|cockpit|airport)\b",
+        _foreground_title(item), re.IGNORECASE))
+    if ((route_security(item) or direct_missile_harm) and not unrelated_security_context
+            and foreground_aviation):
         return "aviation_security"
     if (re.search(r"\b(?:earthquake|quake|tsunami)\b", text)
             and re.search(r"\b(?:kill\w*|dead|death\w*|injur\w*|evacuat\w*|destroy\w*)\b|\bmagnitude\s+[6-9](?:\.\d)?", text)):
@@ -243,7 +247,90 @@ def _structured_same_incident(a, b):
                 and (not left[2] or not right[2] or left[2] & right[2]))
 
 
+def _foreground_title(item):
+    """Return the title prefix before an explicit background transition."""
+    return re.split(r"\b(?:after|following|amid|as|while|during|because|before|since)\b",
+                    unescape(str(item.get("title", ""))), maxsplit=1,
+                    flags=re.IGNORECASE)[0].strip()
+
+
+def _foreground_action(item):
+    """Extract only confident active named roles; absence is not identity evidence."""
+    full_title = unescape(str(item.get("title", ""))).replace("\u2019", "'")
+    # Uncertainty anywhere in a headline survives background truncation.
+    if re.search(r'["?,;:\u201c\u201d\u2018]|\b(?:not|never|no|deny|denies|denied|may|might|could|would|'
+                 r'will|plan|plans|planned|reportedly|allegedly|exercise|simulation|training)\b',
+                 full_title, re.IGNORECASE):
+        return None
+    title = _foreground_title(dict(item, title=full_title))
+    action = re.fullmatch(
+        r"(?P<actor>.+?)\s+(?:(?P<report>say|says|said)\s+(?:that\s+)?(?P<pronoun>it|they)\s+)?"
+        r"(?P<verb>attack|attacks|attacked|strike|strikes|struck|bomb|bombs|bombed|"
+        r"shell|shells|shelled|hit|hits)\s+(?P<target>.+)", title)
+    if not action:
+        return None
+    reports = re.findall(r"\b(?:say|says|said)\b", full_title)
+    if len(reports) != bool(action["report"]) or re.search(
+            r"\b(?:attack|attacks|attacked|strike|strikes|struck|bomb|bombs|bombed|shell|shells|shelled|hit|hits)\b",
+            action["target"]):
+        return None
+    roles = set("the force forces army armies navy military rebel rebels militant militants"
+                " coalition troop troops government".split())
+    objects = roles | set("a an missile missiles facility facilities oil pumping station stations"
+                          " airport airports base bases port ports depot depots airfield airfields"
+                          " target targets site sites position positions".split())
+
+    def names(phrase, allowed):
+        phrase = re.sub(r"-led\b", "", phrase)
+        phrase = re.sub(r"'s\b|(?<=s)'", "", phrase)
+        words = phrase.split()
+        if not words or any(not re.fullmatch(r"[A-Za-z]+", word) for word in words):
+            return set()
+        anchors = []
+        finished_name = False
+        for word in words:
+            lower = word.lower()
+            if lower in allowed and (word.islower() or not anchors):
+                finished_name = bool(anchors)
+                continue
+            if finished_name or not word[0].isupper():
+                return set()
+            anchors.append(lower)
+        return {" ".join(anchors)} if anchors else set()
+
+    actor = names(action["actor"], roles)
+    if action["pronoun"]:
+        # Bare proper names ending in s may be singular. Reporting agreement,
+        # rather than their spelling alone, establishes the supported number.
+        subject_head = action["actor"].rstrip("'").split()[-1].lower()
+        plural = subject_head.endswith("s") and not subject_head.endswith("ss")
+        if ((action["pronoun"] == "they" and (not plural or action["report"] == "says"))
+                or (action["pronoun"] == "it" and action["report"] == "say")):
+            return None
+    # Only a bare actor with explicit plural agreement may lose terminal s.
+    # Qualifiers (Vardis forces) and target names preserve their identity.
+    if (re.fullmatch(r"[A-Z][a-z]+s", action["actor"])
+            and not action["actor"].endswith("ss")
+            and (action["pronoun"] == "they" or (not action["report"]
+                 and action["verb"] in {"attack", "strike", "bomb", "shell"}))):
+        actor = {name[:-1] for name in actor}
+    # Only the leading target phrase is used, never a location or second clause.
+    target_phrase = re.split(r"[,;:.]|\s+-\s+|\b(?:in|at|near|on|with|by|and)\b",
+                             action["target"], maxsplit=1)[0].strip()
+    target = names(target_phrase, objects)
+    if not actor or not target:
+        return None
+    return actor, target
+
+
 def _compatible(a, b):
+    left_action, right_action = _foreground_action(a), _foreground_action(b)
+    if left_action and right_action:
+        left_actor, left_target = left_action
+        right_actor, right_target = right_action
+        if (left_actor.isdisjoint(right_actor) and left_actor & right_target
+                and right_actor & left_target):
+            return False
     a, b = _current_item(a), _current_item(b)
     left_details, right_details = _incident_details(a), _incident_details(b)
     # Airport adjectives can name a country rather than its incident city.
