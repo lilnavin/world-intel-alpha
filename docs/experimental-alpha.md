@@ -43,7 +43,7 @@ a mirror of the original repository.
 
 ## Try the synthetic demo
 
-Follow the [README setup](../README.md#development-setup) for Python 3.11 or 3.12
+Follow the [README setup](../README.md#quickstart-try-the-offline-demo) for Python 3.11 or 3.12
 on Windows or Linux, including hash-locked dependencies and package installation.
 Dependency installation uses the network. The installed demo itself is offline
 and needs no credentials or model subscription:
@@ -149,11 +149,11 @@ or uncertain cards, and exhausted budget can HOLD the run. Correction preserves
 card membership/order and citations. A bounded preflight may remove an extra
 citation only under the existing captured-source checks; it never rewrites card
 prose or supplies missing evidence. There is no further correction/retry on
-failure. See [review details](../README.md#source-review-and-private-evidence).
+failure. See [review details](analysis-reliability.md#source-review-and-private-evidence).
 
 The frozen world prompt/schema L0 remains unchanged; this policy does not claim
 to resolve every analytical-certainty concern. Review feed desk spelling and
-the remaining configuration limitations described in the README.
+the remaining [configuration limitations](architecture.md#coverage-configuration).
 
 Manual alpha approval may precede two scheduled days. Production qualification,
 two consecutive frozen scheduled days, independently evidenced delivery and
