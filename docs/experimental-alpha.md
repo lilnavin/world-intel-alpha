@@ -86,8 +86,14 @@ suppress them. Missing/incomplete evidence cannot establish a safe failure.
 Normal HOLD may return exit code zero; use status and artifact/state evidence.
 
 Keep live raw evidence outside every Git repository, issue attachment, public
-archive and CI artifact. Public fixtures must be wholly fictional; exact private
-replays stay private. See [security boundaries](../SECURITY.md). The project
+archive and CI artifact. New alpha regression additions and the bundled demo
+must be wholly fictional. Inherited tests retain short historical headline
+examples in `tests/test_fetch.py`, public historical names in
+`tests/test_ownership.py`, and numeric/public-filing metadata examples. See the
+[fixture provenance inventory](../tests/fixtures/README.md): historical provenance
+is incomplete, and no rights clearance or authenticity verification is asserted.
+Full private captures/articles and exact private replays remain forbidden in
+public distributions. See [security boundaries](../SECURITY.md). The project
 remains MIT-licensed; that license does not license third-party reporting or
 provider output. Preserve provenance and applicable terms separately.
 

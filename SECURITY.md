@@ -38,10 +38,16 @@ approval. Publication tooling never changes repository visibility.
 The MIT license covers this project's software and documentation. It does not
 grant rights to third-party reporting, article captures or provider output.
 Keep source provenance and applicable provider/source terms separate from the
-project license. Public demos and regression examples use invented material;
-live raw evidence belongs outside every Git repository, issue attachment,
-public archive and CI artifact. Inspect the intended reachable Git objects and
-refs as well as archive paths, contents and commit metadata before publication.
+project license. The bundled demo and new alpha regression additions use invented
+material. Inherited tests retain short historical headline examples in
+`tests/test_fetch.py`, public historical names in `tests/test_ownership.py`,
+and numeric/public-filing metadata examples. See the
+[fixture provenance inventory](tests/fixtures/README.md): historical provenance
+is incomplete, and no rights clearance or authenticity verification is asserted.
+Full private captures/articles and live raw evidence belong outside every Git
+repository, issue attachment, public archive and CI artifact. Inspect the intended
+reachable Git objects and refs as well as archive paths, contents and commit
+metadata before publication.
 
 `--dry` prevents briefing/state publication, but still accesses configured
 services and the analysis engine. It is not a network sandbox. `demo` uses only
