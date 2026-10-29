@@ -1,6 +1,6 @@
-# World Intel configurable briefing candidate
+# World Intel experimental source alpha candidate
 
-Development candidate for the configurable World Intel briefing skill.
+Source-only experimental candidate for the configurable World Intel briefing skill.
 Live output remains experimental; this is not a production-ready system.
 
 Configuration now drives runtime paths, sources, SEC lane switches, tuning, and
@@ -11,7 +11,10 @@ model evidence can be retained separately for diagnosis and release review.
 The audited predecessor passed clean installation and Windows/Linux CI, with
 historical minimal live dry-run evidence. Those results do not qualify changed
 code for release. Qualification requires final-commit checks, fresh content
-acceptance, a frozen scheduled trial, and explicit publication approval.
+acceptance and explicit publication approval under the applicable policy.
+The [experimental alpha checklist](docs/experimental-alpha.md) permits manual
+owner approval of an audited source commit and source ZIP before the production
+scheduled trial. This candidate has not been qualified by this documentation.
 Keep unqualified candidates in isolated private testing.
 
 Three example profiles live in `config/`: `minimal` (world news, no SEC), `world`
@@ -75,12 +78,16 @@ checkout, not Git history, and does not replace the publication security audit.
 The source export excludes private configuration, captures, live launchers
 and historical planning documents. A generic scratch-deployment tool and launcher
 template are included. Owner data belongs outside this repository.
-The release requires installed-package tests, Windows/Linux CI, the applicable
-replay or reviewed coverage-regression evidence, and a clean history audit.
+Strict production publication requires installed-package tests, Windows/Linux
+CI, the applicable replay or reviewed coverage-regression evidence, and a clean
+history audit.
 The version 2 acceptance policy requires two consecutive scheduled days after
 freezing the candidate and profile, independently verified delivery, and owner
 content acceptance. Legacy version 1 manifests retain their seven-run policy.
 Manual runs and successful model passes do not replace scheduled acceptance.
+The separate manual source-alpha policy does not change those checker gates or
+create a machine `publication_ready` result. See the
+[policy and known limitations](docs/experimental-alpha.md) before live use.
 
 ## Try the installed commands
 
@@ -124,9 +131,10 @@ Bot API transport or delivery receipt is implied.
 ## Source review and private evidence
 
 Coverage checks establish registered-event coverage and source eligibility;
-they do not establish factual correctness. To request one additional bounded
-review of final full story cards against their captured cited sources, add this
-setting to your private profile's existing `analysis` section:
+they do not establish factual correctness. For alpha live use, both existing
+review settings below are recommended. To enable bounded review of final full
+story cards against their captured cited sources, add these settings to the
+private profile's existing `analysis` section:
 
 ```yaml
 analysis:
@@ -134,7 +142,9 @@ analysis:
   source_review_repair_enabled: true
 ```
 
-Existing profiles omit this option and keep their previous model-call behavior.
+Review remains opt-in. Omitted or disabled review retains legacy model-call
+behavior without this source-review barrier; normal non-dry runs may also apply
+model-authored KB deltas. Repair requires review to be enabled.
 Review consumes model access or subscription quota and uses the remaining
 analysis deadline, with at most 120 seconds per call. With only review enabled,
 it adds at most one invocation and holds unsupported or uncertain cards. The
@@ -158,7 +168,11 @@ plan is presented as a completed action, are rejected deterministically and use
 that same correction limit. This narrow check abstains on unsupported grammar;
 it is not general proof that every claim follows from its source.
 Missing sources, invalid responses, unsupported final claims, or exhausted
-budget hold the run before briefing, knowledge updates, or delivery. Release
+budget hold the reviewed run before a new/replaced briefing, MEDIA handoff,
+delivery, or model KB-delta application. A normal HOLD may still persist status,
+raw fetch caches and private model captures; identify these writes in probe
+evidence. A normal HOLD can return exit code zero, so inspect status and
+artifacts rather than treating process success as accepted output. Release
 validation enables both checks; disabled review cannot count as a factual pass.
 
 The review covers full world, configured national, and finance story cards'

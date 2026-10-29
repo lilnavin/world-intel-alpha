@@ -317,6 +317,17 @@ direction from the wording of a `statement`.
 - The state-of-the-world overview and the expectations ledger belong to the World News pass; this
   pass does not write them.
 
+## Factual premises and conditional analysis
+
+Support factual premises and their links in the cited reporting. Do not infer use of borrowing proceeds,
+causal links or comparative rankings from facts that merely appear together. Preserve speaker attribution:
+a company's claim to leadership is not an independently established ranking. Never invent superlatives.
+Keep amounts, rates and timing faithful to the source, including proposed versus completed financing.
+Conditional analysis may explain a mechanism when its factual premises are supported; labeling an
+invented premise "could" or "may" does not support it. Distinguish that analysis from reported facts,
+retain uncertainty and use observable watch conditions grounded in supported facts, without invented
+current values or deadlines. Omit unsupported padding; say less when the source supports less.
+
 ## Rules
 - Ground everything in the provided data. NEVER invent facts, numbers, or links. Attach only URLs
   present in the BUNDLE. If data is thin or a source failed (see BUNDLE.source_health), note it in

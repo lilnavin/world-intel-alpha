@@ -366,6 +366,36 @@ def test_finance_prompt_receives_the_world_passs_headlines_for_scoreboard_read()
     assert "single-mention rule" in finance
 
 
+def test_finance_invocation_receives_factual_premise_and_attribution_contract(monkeypatch):
+    """Catch lost finance guidance at the callback boundary, not model entailment."""
+    calls = []
+    def callback(prompt, schema_path, **kwargs):
+        calls.append((prompt, schema_path, kwargs))
+        return {"briefing": {}}
+    monkeypatch.setattr(codex_engine, "run_schema", callback)
+    bundle = {"news": [{"desk": "finance", "title": "Larch Works plans notes",
+                        "url": "https://example.test/larch", "content": "Fictional reporting."}]}
+    context = {"overview": "Fictional context sentinel"}
+    codex_engine.analyze_finance(bundle, context, "finance.schema.json",
+                                 world_headlines=["Fictional world sentinel"], timeout=37)
+    assert len(calls) == 1
+    prompt, schema, kwargs = calls[0]
+    assert schema == "finance.schema.json" and kwargs["timeout"] == 37
+    assert "{bundle}" not in prompt and "{context}" not in prompt
+    assert json.dumps(context, ensure_ascii=False) in prompt
+    material = json.loads(prompt.split("## TODAY (BUNDLE)\n", 1)[1])
+    assert material["news"] == bundle["news"]
+    assert material["world_headlines"] == ["Fictional world sentinel"]
+    assert "world_source_budget" in material
+    blocks = _lifted_blocks()
+    for name in ("style", "grounding", "tier_gate", "guardian_cap", "novelty_gate"):
+        assert blocks[name] in prompt
+    for guidance in ("factual premises", "use of borrowing proceeds", "causal links",
+                     "speaker attribution", "comparative rankings", "Conditional analysis",
+                     "observable watch conditions", "Omit unsupported padding"):
+        assert guidance in prompt
+
+
 # --------------------------------------------------------------------------- #
 # Task 9 -- schemas. Global Constraint 3: every property is required-AND-
 # nullable. Strict `--output-schema` rejects any property absent from

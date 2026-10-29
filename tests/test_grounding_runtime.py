@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from test_dry_isolation import offline, TODAY
+from test_dry_isolation import offline, snapshot, TODAY
 from worldintel import config, run
 
 
@@ -17,9 +17,22 @@ def enable():
 
 
 @pytest.mark.parametrize("dry", [False, True])
-def test_hold_prevents_render_kb_and_handoff_and_records_failure(offline, monkeypatch, capsys, dry):
+@pytest.mark.parametrize("existing", [False, True])
+def test_hold_prevents_render_kb_and_handoff_and_records_failure(
+        offline, tmp_path, monkeypatch, capsys, dry, existing):
     root, media, _, _, renderer, _ = offline
     enable()
+    if existing:
+        run.kb.ensure_kb(str(root))
+        run.kb.write_state(str(root), {"last_run_date": TODAY})
+        run.earnings_report.write_pipeline(str(root), {"old": {"status": "covered"}})
+        run.filing_index.write_index(str(root), {"2026-09-30": {"old": "entry"}})
+        daily = root / "wiki" / "daily" / f"{TODAY}.md"
+        daily.parent.mkdir(parents=True, exist_ok=True)
+        daily.write_bytes(b"existing KB brief")
+        media.mkdir()
+        (media / f"brief-{TODAY}.html").write_bytes(b"existing media brief")
+    before = snapshot(tmp_path)
     writers = []
     for name in ("apply_deltas", "update_scoreboard", "append_scoreboard_history", "write_daily", "write_state"):
         if hasattr(run.kb, name):
@@ -30,17 +43,27 @@ def test_hold_prevents_render_kb_and_handoff_and_records_failure(offline, monkey
     assert run.main() == (1 if dry else 0)
     output = capsys.readouterr()
     assert "MEDIA:" not in output.out
-    assert not media.exists() and renderer.call_count == 0
+    assert media.exists() == existing and renderer.call_count == 0
     assert all(w.call_count == 0 for w in writers)
     if dry:
         summary = json.loads(next(l.split(":", 1)[1] for l in output.err.splitlines() if l.startswith("WORLD_INTEL_DRY_SUMMARY:")))
         assert summary["generation"] == "held" and summary["source_review"]["status"] == "hold"
-        assert not root.exists()
+        assert root.exists() == existing
+        assert snapshot(tmp_path) == before
     else:
         receipt = json.loads((root / "run-status.json").read_text())
         assert receipt["generation"] == "held" and receipt["handoff"] == "held"
         assert receipt["source_review"]["status"] == "hold"
         assert receipt["artifact"] is None
+        # This fixture performs no model invocation. The status receipt and
+        # fetched-source cache persist; model evidence is permitted in real calls.
+        after = snapshot(tmp_path)
+        permitted = {str(Path("data") / "run-status.json"),
+                     str(Path("data") / "raw" / TODAY / "fetch.json")}
+        assert set(after) - set(before) == permitted
+        assert (root / "raw" / TODAY / "fetch.json").read_bytes() == b"fresh cache"
+        assert {name: value for name, value in after.items()
+                if name not in permitted} == before
 
 
 def test_accepted_review_is_visible_in_status_and_occurs_after_coverage(offline, monkeypatch, capsys):

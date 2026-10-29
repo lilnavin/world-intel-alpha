@@ -1,6 +1,8 @@
 """Bounded correction enforcement; callbacks do not establish model competence."""
 import copy
 import json
+from pathlib import Path
+import subprocess
 
 import pytest
 from test_grounding_review import fixture, response
@@ -161,3 +163,117 @@ def test_missing_source_or_no_budget_never_corrects(failure):
                      repair_fn=lambda *a: pytest.fail('must not correct'), deadline=100, clock=lambda: 100)
     assert audit['status'] == 'hold'
     assert (audit['attempted'], audit['repair_attempted'], audit['review_calls']) == (False, False, 0)
+
+
+@pytest.mark.parametrize("disposition", ["supported-first", "supported-after-correction", "untouched-uncertain"])
+def test_three_finance_corrections_require_final_acceptance_of_untouched_card(
+        monkeypatch, tmp_path, disposition):
+    """Fictional callbacks test scope/atomicity, including a mistaken final judgment."""
+    from worldintel.core import codex_engine as engine
+    from worldintel.core.model_evidence import Collector
+    cards, news, corrected = [], [], {}
+    for index, company in enumerate(("Larch Works", "Mica Tools", "Cedar Motors", "Flint Parts")):
+        body = (
+            f"{company} plans to issue $40 million of notes in November at a fixed 5% rate. "
+            "Its board separately approved an equipment project, without identifying its funding. "
+            f"Management described {company} as a regional leader; the report gave no market ranking. "
+            "The company also has a floating-rate loan. The loan resets against a benchmark, "
+            "while the proposed notes would carry the stated fixed rate if issued on those terms. "
+            "Management has not announced a completed sale or a final allocation of proceeds. "
+            "The board's approval allows planning to continue while procurement remains pending. "
+            "If the loan benchmark rises, interest costs on that floating-rate borrowing could increase. "
+            "Watch whether the next loan reset changes its interest cost."
+        )
+        assert 100 <= len(body.split()) <= 200
+        url = f"https://example.test/fictional-financing/{index}"
+        card = {"headline": f"{company} plans notes", "why_it_matters": "Financing terms remain prospective.",
+                "body": body, "sources": [{"url": url}]}
+        corrected[f"finance.brief:{index}"] = {f: card[f] for f in g.FIELDS}
+        cards.append(card)
+        news.append({"url": url, "title": card["headline"], "content": body})
+    if disposition != "supported-first":
+        cards[0]["body"] = cards[0]["body"].replace(
+            "without identifying its funding", "funded using the notes")
+        cards[1]["body"] = cards[1]["body"].replace(
+            "Management described Mica Tools as a regional leader; the report gave no market ranking.",
+            "Mica Tools is the largest regional supplier.")
+        cards[2]["body"] = cards[2]["body"].replace("plans to issue", "issued")
+    result = {"briefing": {"finance": {"brief": cards}}, "kb_deltas": {"unreviewed": "proposal"}}
+    original_bytes = json.dumps(result, ensure_ascii=False).encode("utf-8")
+    original = copy.deepcopy(result)
+    collector = Collector(tmp_path / "private", "fictional-finance")
+    reviewed, raw_outputs, parsed_outputs, calls = [], [], [], []
+    monkeypatch.setattr(engine, "_resolve_codex", lambda: "codex")
+
+    def execute(args, *, stdin, **kwargs):
+        prompt = stdin.read().decode("utf-8").replace("\r\n", "\n")
+        material = json.loads(prompt.split("\nINPUT_JSON\n", 1)[1])
+        reviewed.append(material)
+        sources = {s["source_id"]: s for s in material["sources"]}
+        records = []
+        for index, card in enumerate(material["cards"]):
+            verdict = "supported"
+            if len(reviewed) == 1 and disposition != "supported-first" and index < 3:
+                verdict = "unsupported"
+            elif len(reviewed) == 2 and disposition == "untouched-uncertain" and index == 3:
+                verdict = "uncertain"
+            source = sources[card["source_ids"][0]]
+            reason = ("Conditional financing mechanism lacks support." if verdict == "uncertain"
+                      else "Injected semantic judgment for orchestration only.")
+            records.append({"card_id": card["card_id"], "prose_sha256": card["prose_sha256"],
+                            "verdict": verdict, "reason": reason,
+                            "claims": [{"field": "body", "text": card["body"],
+                                        "source_id": source["source_id"], "source_sha256": source["sha256"],
+                                        "quote": source["content"]}]})
+        raw = (json.dumps({"cards": records}, indent=2) + "\n").encode("utf-8")
+        raw_outputs.append(raw)
+        Path(args[args.index("-o") + 1]).write_bytes(raw)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(engine, "_execute", execute)
+
+    def reviewer(prompt, schema, timeout):
+        calls.append("review")
+        out = engine.run_schema(prompt, schema, timeout=timeout, evidence_sink=collector,
+                                pass_name="source-review" if len(calls) == 1 else "source-review-final")
+        parsed_outputs.append(out)
+        return out
+
+    def repair(prompt, schema, timeout):
+        calls.append("repair")
+        material = json.loads(prompt.split("\nINPUT_JSON\n", 1)[1])
+        assert [c["card_id"] for c in material["cards"]] == [f"finance.brief:{i}" for i in range(3)]
+        assert len(material["sources"]) == 3
+        return {"cards": [{"card_id": c["card_id"], "prose_sha256": c["prose_sha256"],
+                           **corrected[c["card_id"]]} for c in material["cards"]]}
+
+    audit = g.review(result, {"news": news}, review_fn=reviewer, repair_fn=repair,
+                     deadline=500, clock=lambda: 100)
+    expected_calls = ["review"] if disposition == "supported-first" else ["review", "repair", "review"]
+    assert calls == expected_calls
+    assert audit["review_calls"] == len(reviewed) == (1 if disposition == "supported-first" else 2)
+    assert audit["repair_attempted"] == (disposition != "supported-first")
+    assert [c["card_id"] for c in reviewed[-1]["cards"]] == [f"finance.brief:{i}" for i in range(4)]
+    assert result["briefing"]["finance"]["brief"][3] == original["briefing"]["finance"]["brief"][3]
+    if disposition == "untouched-uncertain":
+        assert audit["status"] == "hold" and audit["corrected_cards"] == 0
+        assert json.dumps(result, ensure_ascii=False).encode("utf-8") == original_bytes
+        assert all(c["verdict"] == "supported" for c in parsed_outputs[-1]["cards"][:3])
+        assert parsed_outputs[-1]["cards"][3]["verdict"] == "uncertain"
+    else:
+        assert audit["status"] == "accepted" and audit["cards_reviewed"] == 4
+        assert audit["corrected_cards"] == (0 if disposition == "supported-first" else 3)
+        for index, card in enumerate(result["briefing"]["finance"]["brief"]):
+            assert {f: card[f] for f in g.FIELDS} == corrected[f"finance.brief:{index}"]
+            assert card["sources"] == original["briefing"]["finance"]["brief"][index]["sources"]
+    if len(reviewed) == 2:
+        for index, card in enumerate(reviewed[-1]["cards"][:3]):
+            assert card["body"] == corrected[f"finance.brief:{index}"]["body"]
+            assert card["prose_sha256"] != reviewed[0]["cards"][index]["prose_sha256"]
+        assert reviewed[-1]["cards"][3] == reviewed[0]["cards"][3]
+    summary = collector.summary()
+    assert summary["complete"] is True
+    assert len(summary["invocations"]) == len(raw_outputs) == len(parsed_outputs) == len(reviewed)
+    for entry, raw, parsed in zip(summary["invocations"], raw_outputs, parsed_outputs):
+        assert (collector.root / entry["invocation_id"] / "output.bin").read_bytes() == raw
+        assert parsed == json.loads(raw)  # Validation never rewrites even a mistaken reviewer verdict.

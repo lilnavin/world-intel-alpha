@@ -53,6 +53,22 @@ provenance remain ATTESTED. They never become independently verified PASS merely
 because JSON says success, and publication remains blocked while any gate is
 ATTESTED or pending. The preflight never changes repository visibility.
 
+The separate [experimental source-alpha checklist](experimental-alpha.md) is a
+manual owner policy, not another checker or an exception encoded into version 1
+or version 2. Alpha owner approval can precede the two scheduled production days;
+it leaves the strict checker result, ATTESTED evidence and unfinished production
+acceptance unchanged. A checklist or attributed success declaration is not
+independently authenticated proof.
+
+Alpha eligibility requires fresh evidence for the exact final source commit,
+including independently accepted minimal live content and one bounded isolated
+full probe. The full probe may yield independently accepted output or a disclosed
+`HOLD / SAFE FAILURE OBSERVED` with complete evidence and preserved failure
+barriers. A full HOLD is never accepted full output or full-profile qualification.
+Generated full output with a positively unsupported factual claim blocks the
+candidate. Record and adjudicate disagreements about clearly signposted ordinary
+analysis. Historical replay and live results do not qualify changed code.
+
 Live minimal verification requires a full exact source commit and a separate
 complete registered-event quality status, in addition to complete analysis and
 grounded rendering. Its quality scope does not claim complete major-event recall.
