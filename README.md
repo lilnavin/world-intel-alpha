@@ -1,21 +1,32 @@
-# World Intel experimental source alpha candidate
+# World Intel
 
-Source-only experimental candidate for the configurable World Intel briefing skill.
-Live output remains experimental; this is not a production-ready system.
+Configurable news briefing software with source collection, model-assisted
+analysis and HTML output. This public source release is available for use,
+feedback and continued improvement; live summaries can contain factual errors.
 
-Configuration now drives runtime paths, sources, SEC lane switches, tuning, and
-news desks. The prompt/schema generators preserve the reference profile's exact
-bytes; five recorded scheduled days pass story-selection and HTML replay.
-Dry runs do not publish or replace briefing files or knowledge state. Private
-model evidence can be retained separately for diagnosis and release review.
-The audited predecessor passed clean installation and Windows/Linux CI, with
-historical minimal live dry-run evidence. Those results do not qualify changed
-code for release. Qualification requires final-commit checks, fresh content
-acceptance and explicit publication approval under the applicable policy.
-The [experimental alpha checklist](docs/experimental-alpha.md) permits manual
-owner approval of an audited source commit and source ZIP before the production
-scheduled trial. This candidate has not been qualified by this documentation.
-Keep unqualified candidates in isolated private testing.
+## Current status and known accuracy issue
+
+Source review checks full story cards, but does not cover Signals, Radar and
+other auxiliary summaries. In the full-profile release check, a Signal omitted
+which vehicle types a proposed eligibility rule covered, making the rule sound
+broader than its captured source supported. This defect remains open. Verify
+important claims against their original sources, including when story-card
+review is enabled.
+
+The owner approved source publication with this limitation disclosed. The
+runtime source at commit `72793fb25df58b82c86b478254ddf80fdbdf338d`
+passed the recorded offline suite (2,585 passed, four skipped), fresh installation,
+four Windows/Linux CI jobs and a minimal live content review. The full run
+completed technically but failed independent content review for the issue above.
+This publication changes documentation only after that audited source commit;
+it does not establish full-output accuracy or production qualification.
+
+Two scheduled production acceptance days and independently verified delivery
+remain pending. See the [release policy and limitations](docs/experimental-alpha.md).
+
+Configuration drives runtime paths, sources, SEC lane switches, tuning and news
+desks. Dry runs do not publish or replace briefing files or knowledge state.
+Private model evidence can be retained separately for diagnosis and review.
 
 Three example profiles live in `config/`: `minimal` (world news, no SEC), `world`
 (world/US/finance, no SEC), and `full` (multi-country reference profile). Copy a

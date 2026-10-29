@@ -1,4 +1,31 @@
-# Experimental source-alpha policy
+# Public source release decision
+
+On 2026-10-29, the owner approved publishing the audited current source and
+improving it in public, accepting the known auxiliary-summary accuracy defect.
+This decision supersedes the source-publication eligibility requirements in the
+historical checklist below, including its rule blocking a candidate for an
+unsupported accepted full artifact. It does not change runtime review barriers,
+security controls or the strict production checker.
+
+The published runtime source is based on audited commit
+`72793fb25df58b82c86b478254ddf80fdbdf338d`, followed only by release-documentation
+updates. The full-profile probe completed and saved output, but independent
+review rejected a Signal for omitting a material vehicle-category restriction.
+This was an accepted inaccurate artifact, not a safely withheld result. Story
+cards passed review; auxiliary summaries remain outside automatic grounding
+review. Extending review to those sections and testing qualifier preservation
+remains open work.
+
+Only the audited source history and these documentation updates are authorized
+for the new public repository. Private configuration, credentials, source
+captures, model evidence, operational state and the original private repository
+remain private. No production deployment, scheduler change or delivery is part
+of source publication. Historical checks below are retained for context rather
+than presented as completed production qualification.
+
+---
+
+# Historical experimental source-alpha policy
 
 World Intel is experimental. This policy describes eligibility for owner review;
 it does not assert that the current candidate has passed any gate. Publication
