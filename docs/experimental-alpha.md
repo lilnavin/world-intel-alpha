@@ -55,8 +55,10 @@ world-intel demo --out out/demo
 
 The demo uses invented stories and figures; it is not live content validation.
 Commands refuse to overwrite an existing demo or initialized profile. Live use
-additionally needs configured network services, the Codex executable and
-authentication/model access. `doctor` checks local prerequisites but does not
+additionally needs configured network services and authentication/model access
+through the selected analysis engine (Codex CLI by default). Native Hermes and
+OpenClaw adapters are feature-guarded and mocked-tested, not independently
+live-qualified; see [agent setup](use-with-your-agent.md). `doctor` checks local prerequisites but does not
 verify authentication. `run --dry` still uses the network and model; live
 `run --offline` is unsupported. Use private profiles and data directories outside
 all repositories. Replace the full profile's synthetic SEC contact before real

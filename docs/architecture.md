@@ -63,8 +63,10 @@ requests. yfinance is the primary market source; Twelve Data is an optional
 keyed fallback. FRED needs `FRED_API_KEY`. Other optional keyed integrations are
 NewsData, Guardian, Marketaux and Finnhub. Keys are read from `runtime.env_file`;
 source availability and terms remain provider-specific. All live profiles need
-the installed, authenticated Codex CLI; configuration accepts only the Codex
-analysis engine.
+a configured analysis engine: Codex CLI (default), a trusted command wrapper,
+OpenClaw Gateway `llm-task`, or a feature-compatible installed Hermes runtime.
+Native compatibility is feature-guarded and mocked-tested, not independently
+live-qualified. See [agent setup](use-with-your-agent.md).
 
 ## Demo and live execution
 
@@ -73,8 +75,8 @@ model calls. Installing dependencies still needs network access. Live
 `run --offline` is unsupported. `doctor` checks local dependencies, configuration
 and executable availability, but makes no authentication/model call.
 
-Live `run --dry` still uses external sources and Codex, staging working data in
-a temporary directory. It renders HTML in memory and reports diagnostics
+Live `run --dry` still uses external sources and the selected analysis engine,
+staging working data in a temporary directory. It renders HTML in memory and reports diagnostics
 without publishing a viewable HTML file, normal receipts or persistent
 knowledge updates. Normal runs can save HTML and state; inspect
 [analysis status and review holds](analysis-reliability.md), since process exit

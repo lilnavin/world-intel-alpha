@@ -407,6 +407,7 @@ def analyze_world(
     timeout: int = 360,
     evidence_sink=None,
     pass_name=None,
+    runner=None,
 ) -> dict:
     """Run the World News pass: `prompts/world.md` against
     `schema/world.schema.json`. Raises CodexError like ``analyze``."""
@@ -415,7 +416,7 @@ def analyze_world(
     # model-input boundary. The builder's separate byte API remains exact.
     template = prompt_build.build().replace("\r\n", "\n").replace("\r", "\n")
     prompt = _build_prompt(_world_bundle(bundle), context, template_text=template)
-    return run_schema(prompt, schema_path,
+    return (runner or run_schema)(prompt, schema_path,
                       reasoning_effort=reasoning_effort, timeout=timeout,
                       **({"evidence_sink": evidence_sink, "pass_name": pass_name} if evidence_sink is not None else {}))
 
@@ -430,13 +431,14 @@ def analyze_finance(
     timeout: int = 360,
     evidence_sink=None,
     pass_name=None,
+    runner=None,
 ) -> dict:
     """Run the Finance pass: `prompts/finance.md` against
     `schema/finance.schema.json`. `world_headlines` is what `scoreboard_read`'s
     story citations bind to. Raises CodexError like ``analyze``."""
     prompt = _build_prompt(_finance_bundle(bundle, world_headlines), context,
                            FINANCE_PROMPT_TEMPLATE)
-    return run_schema(prompt, schema_path,
+    return (runner or run_schema)(prompt, schema_path,
                       reasoning_effort=reasoning_effort, timeout=timeout,
                       **({"evidence_sink": evidence_sink, "pass_name": pass_name} if evidence_sink is not None else {}))
 
@@ -455,7 +457,7 @@ def run_two_pass(
     bundle: dict, context: dict, world_schema: str, finance_schema: str, *,
     concurrent: bool = False, reasoning_effort: str = "high", timeout=None,
     world_timeout: int = 600, finance_timeout: int = 360, deadline=None, log=None,
-    evidence_sink=None, pass_name=None,
+    evidence_sink=None, pass_name=None, runner=None,
 ) -> dict:
     """Sequential world then finance, with no automatic retries.
 
@@ -480,6 +482,8 @@ def run_two_pass(
             error = "analysis budget exhausted"
         else:
             kwargs = {"reasoning_effort": reasoning_effort, "timeout": bounded}
+            if runner is not None:
+                kwargs["runner"] = runner
             if evidence_sink is not None:
                 kwargs.update(evidence_sink=evidence_sink, pass_name=f"{pass_name}.{name}" if pass_name else name)
             if name == "finance":

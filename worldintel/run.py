@@ -26,6 +26,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -53,7 +54,7 @@ from worldintel.core import sec_fundamentals  # noqa: E402
 from worldintel.core import enrich  # noqa: E402
 from worldintel.core import select_news  # noqa: E402
 from worldintel.core import kb  # noqa: E402
-from worldintel.core import codex_engine  # noqa: E402
+from worldintel.core import codex_engine, analysis_engine  # noqa: E402
 from worldintel.core import compose_html  # noqa: E402
 from worldintel.core import metrics  # noqa: E402
 from worldintel.core import quality_gate  # noqa: E402
@@ -178,9 +179,9 @@ def _source_provenance() -> tuple:
 SOURCE_COMMIT, SOURCE_DIRTY = _source_provenance()
 
 
-def _coverage_repair(prompt, timeout, *, evidence_sink=None):
+def _coverage_repair(prompt, timeout, *, evidence_sink=None, runner=None):
     with data.as_file("schema/coverage.schema.json") as schema:
-        response = codex_engine.run_schema(
+        response = (runner or codex_engine.run_schema)(
             prompt + '\nReturn an object {"cards": [...]} matching the schema.',
             str(schema), reasoning_effort="medium", timeout=timeout,
             **({"evidence_sink": evidence_sink, "pass_name": "coverage-repair"} if evidence_sink is not None else {}))
@@ -508,6 +509,7 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
                          or cfg.raw.get("analysis", {}).get("concurrent_passes", False))
     _run_start = time.time()
     analysis_cfg = cfg.raw.get("analysis", {})
+    engine = analysis_engine.select(cfg)
     review_enabled = analysis_cfg.get("source_review_enabled", False)
     _pipeline_start = time.monotonic()
     _analysis_deadline = (_pipeline_start + analysis_cfg.get("pipeline_timeout_s", 1500)
@@ -517,6 +519,11 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
                "artifact": None, "analysis": None,
                "rewrite": {"attempted": False, "skipped": False, "timeout_s": 0, "error": None},
                "generation": "pending", "handoff": "pending", "delivery_confirmed": False}
+
+    receipt["analysis_engine"] = engine.engine_id
+    nonce = os.environ.get("WORLD_INTEL_AGENT_INVOCATION_ID", "")
+    if re.fullmatch(r"[0-9a-f]{32}", nonce):
+        receipt["agent_invocation_id"] = nonce
 
     evidence = model_evidence.Collector(KB_ROOT, receipt["run_id"], media_dir=MEDIA_DIR)
     receipt["source_review"] = {"status": "pending" if review_enabled else "disabled",
@@ -557,16 +564,17 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
     if not dry:
         _persist_status(KB_ROOT, receipt)
 
-    # Health gate: if Codex is unavailable, surface a clear re-auth note, don't fail.
-    log("codex smoke test...")
-    if not codex_engine.smoke_test(
-            timeout=cfg.raw.get("analysis", {}).get("smoke_test_timeout_s", 60)):
-        msg = (
-            "⚠️ World Intelligence paused — Codex CLI/auth unavailable.\n"
-            "Fix: run `codex login` in a terminal (subscription auth). "
-            "The briefing resumes on the next run."
-        )
-        log("codex smoke test FAILED")
+    log(f"{engine.engine_id} smoke test...")
+    if not engine.smoke_test(timeout=analysis_cfg.get("smoke_test_timeout_s", 60)):
+        fixes = {
+            "codex": "Fix: run `codex login` in a terminal (subscription auth).",
+            "command": "Fix: check analysis.command and the trusted wrapper output protocol.",
+            "openclaw": "Fix: check analysis.openclaw, Gateway authentication and the enabled llm-task plugin.",
+            "hermes": "Fix: check analysis.hermes and the installed host interpreter and supported Hermes features.",
+        }
+        msg = (f"World Intelligence paused - {engine.engine_id} analysis engine unavailable.\n"
+               + fixes[engine.engine_id] + " The briefing resumes on the next run.")
+        log(f"{engine.engine_id} smoke test FAILED")
         receipt["generation"] = "failed"
         if not dry:
             _persist_status(KB_ROOT, receipt)
@@ -896,7 +904,7 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
     # the single-mention rule, and only sequencing can supply them.
     # Legacy concurrency requests are logged and ignored. No retries: one
     # pass failing still ships the other tab within the remaining model budget.
-    log("running Codex analysis (two passes: world, finance)...")
+    log(f"running {engine.engine_id} analysis (two passes: world, finance)...")
     _t = time.time()
     world_schema = schema_build.write_temp(cfg)
     try:
@@ -907,13 +915,15 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
                 world_timeout=analysis_cfg.get("world_timeout_s", 600),
                 finance_timeout=analysis_cfg.get("finance_timeout_s", 360),
                 deadline=_analysis_deadline,
-                reasoning_effort=cfg.raw.get("analysis", {}).get("reasoning_effort", "high"))
+                reasoning_effort=cfg.raw.get("analysis", {}).get("reasoning_effort", "high"),
+                **({"runner": engine.run_schema} if engine.engine_id != "codex" else {}))
     finally:
         os.unlink(world_schema)
     for _pass in ("world", "finance"):
         _err = (passes.get("errors") or {}).get(_pass)
         log(f"{_pass} pass: " + (f"FAILED, degrading: {_err}" if _err else "ok"))
     result = _merge_passes(passes, bundle)
+    result["analysis_engine"] = engine.engine_id
     receipt["analysis"] = result["analysis_status"]
     _t_codex = round(time.time() - _t, 1)
 
@@ -940,7 +950,7 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
                         raise codex_engine.CodexError("analysis budget exhausted")
                     receipt["rewrite"]["attempted"] = True
                     try:
-                        return codex_engine.run_schema(prompt, schema, reasoning_effort="medium", timeout=bounded,
+                        return engine.run_schema(prompt, schema, reasoning_effort="medium", timeout=bounded,
                                                        evidence_sink=evidence, pass_name="writing-rewrite")
                     except Exception as exc:
                         receipt["rewrite"]["error"] = codex_engine.diagnostic(exc)
@@ -976,7 +986,8 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
 
     coverage_audit = coverage_gate.enforce(
         result, bundle, bundle.get("protected_events", []),
-        repair_fn=lambda prompt, timeout: _coverage_repair(prompt, timeout, evidence_sink=evidence),
+        repair_fn=lambda prompt, timeout: _coverage_repair(prompt, timeout, evidence_sink=evidence,
+                                                            **({"runner": engine.run_schema} if engine.engine_id != "codex" else {})),
         deadline=_analysis_deadline)
     result["coverage_audit"] = coverage_audit
     receipt["coverage_audit"] = coverage_audit
@@ -990,7 +1001,7 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
         def source_model(prompt, schema, timeout, name):
             if evidence.failed:
                 raise ValueError("private model evidence capture failed")
-            response = codex_engine.run_schema(prompt, schema, reasoning_effort="medium", timeout=timeout,
+            response = engine.run_schema(prompt, schema, reasoning_effort="medium", timeout=timeout,
                                                evidence_sink=evidence, pass_name=name)
             if evidence.failed:
                 raise ValueError("private model evidence capture failed")
@@ -1236,10 +1247,12 @@ def _run_pipeline(cfg, scratch_root: str | None = None) -> int:
         for s, v in health.items():
             if isinstance(v, dict) and v.get("ok"):
                 sh[s] = {"last_ok": today}
-        codex_state = state.setdefault("codex", {})
-        codex_state["status"] = result["analysis_status"]
-        if result["analysis_status"]["overall"] == "complete":
-            codex_state["last_ok"] = today
+        state["analysis_engine"] = {"engine_id": engine.engine_id, "status": result["analysis_status"]}
+        if engine.engine_id == "codex":
+            codex_state = state.setdefault("codex", {})
+            codex_state["status"] = result["analysis_status"]
+            if result["analysis_status"]["overall"] == "complete":
+                codex_state["last_ok"] = today
         try:
             kb.write_state(KB_ROOT, state)
         except Exception as exc:  # noqa: BLE001

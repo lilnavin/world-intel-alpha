@@ -251,6 +251,9 @@ def compute_metrics(bundle: dict, result: dict, date: str,
         rec["codex_ok"] = (status.get("overall") == "complete" and
                            all((status.get("passes") or {}).get(name, {}).get("success") is True
                                for name in ("world", "finance")))
+        if result.get("analysis_engine", "codex") != "codex":
+            rec["codex_ok"] = None
+            rec["analysis_engine"] = result["analysis_engine"]
         rec["analysis_status"] = status
     except Exception:
         pass
