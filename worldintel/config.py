@@ -317,8 +317,7 @@ class Config:
         return tuple(desk["id"] for desk in self.national_desks)
 
     def browser_user_agent(self):
-        contact = f"; +{self.contact_email}" if self.contact_email else ""
-        return f"Mozilla/5.0 (compatible; {self.user_agent_product}{contact})"
+        return f"Mozilla/5.0 (compatible; {self.user_agent_product})"
 
     def plain_user_agent(self, note):
         return f"{self.user_agent_product} (+{_text(note, 'user agent note')})"

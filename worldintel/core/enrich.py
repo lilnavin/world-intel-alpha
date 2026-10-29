@@ -26,6 +26,7 @@ import concurrent.futures
 import time
 
 import requests
+from worldintel.core.safe_fetch import public_get
 
 # Deliberately the same browser-shaped string `feeds.py` sends, and for the same
 # reason its `_fetch_one` documents: several publishers refuse a bare tool UA.
@@ -341,7 +342,7 @@ def _select_recall_candidates(news: list, current: list,
 # Network touch (isolated so tests can stub the session / this function)
 # --------------------------------------------------------------------------- #
 def _fetch_html(session, url: str, timeout: int, outcome=None) -> str:
-    """GET `url` via the shared session with a descriptive UA; return HTML text or
+    """GET a public `url` through the isolated transport; return HTML text or
     "" if the response errors or is not HTML. Never raises."""
     if outcome is None:
         outcome = {}
@@ -350,9 +351,7 @@ def _fetch_html(session, url: str, timeout: int, outcome=None) -> str:
         return ""
     resp = None
     try:
-        resp = session.get(
-            url, headers={"User-Agent": _browser_ua()}, timeout=timeout
-        )
+        resp = public_get(url, user_agent=_browser_ua(), timeout=timeout)
         code = getattr(resp, "status_code", None)
         if type(code) is int and 100 <= code <= 599:
             outcome["http_status"] = code

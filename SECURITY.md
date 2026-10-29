@@ -5,6 +5,17 @@ logs outside this repository. Never attach them to an issue. Configuration is
 trusted local input: it controls feed URLs, filesystem paths and editorial
 instructions. Do not run profiles from people you do not trust.
 
+Feed and article acquisition accepts only unauthenticated public HTTP(S)
+destinations. It checks every resolved address and redirect, then connects to a
+checked address while retaining the original hostname for TLS verification.
+Local, private and other non-global addresses are rejected. Acquisition does not
+use caller-session credentials, environment proxies or netrc authentication.
+Internal feeds and proxy-dependent sources may therefore be unavailable.
+
+General feed/article requests use the product User-Agent without the configured
+contact email. SEC requests retain the separate contactable User-Agent. Shipped
+feed examples use HTTPS; keep credentials and private URLs out of custom feeds.
+
 Private model-evidence stores can contain whole source excerpts, supplied
 knowledge context, and raw model responses. They are not distributable demo
 data. Keep them outside Git and media attachment directories, limit filesystem

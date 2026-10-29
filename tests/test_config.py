@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 import yaml
@@ -122,8 +123,29 @@ def test_paths_timezone_and_ua(config, raw, tmp_path):
     assert cfg.env_file == str(tmp_path / "keys" / ".env")
     assert str(cfg.timezone) == "Asia/Tokyo"
     assert cfg.sec_user_agent() == "test-product/9.9 tester@example.org"
-    assert cfg.browser_user_agent() == "Mozilla/5.0 (compatible; test-product/9.9; +tester@example.org)"
+    assert cfg.browser_user_agent() == "Mozilla/5.0 (compatible; test-product/9.9)"
     assert cfg.plain_user_agent("resilient-fetch") == "test-product/9.9 (+resilient-fetch)"
+
+
+@pytest.mark.parametrize("lane", ["filings", "earnings"])
+def test_sec_contact_is_private_to_sec_user_agent(config, raw, tmp_path, lane):
+    raw["identity"] = {"contact_email": "private-contact@example.org", "user_agent_product": "reader/2.7"}
+    raw["sources"][lane]["enabled"] = True
+    cfg = load(config, tmp_path, raw)
+    assert cfg.browser_user_agent() == "Mozilla/5.0 (compatible; reader/2.7)"
+    assert cfg.sec_user_agent() == "reader/2.7 private-contact@example.org"
+
+
+@pytest.mark.parametrize("profile", ["minimal", "world", "full"])
+def test_shipped_profiles_load_only_https_feeds(config, profile):
+    root = Path(__file__).resolve().parents[1]
+    source = root / "config" / f"example.{profile}.yaml"
+    packaged = root / "worldintel" / "data" / "profiles" / source.name
+    assert source.read_bytes() == packaged.read_bytes()
+    for path in (source, packaged):
+        cfg = config.load(path)
+        assert cfg.feeds
+        assert all(urlsplit(feed["url"]).scheme == "https" for feed in cfg.feeds)
 
 
 @pytest.mark.parametrize("lane", ["filings", "earnings"])

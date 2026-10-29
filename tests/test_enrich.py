@@ -1,6 +1,6 @@
 """Unit tests for Group B (scripts/enrich.py). No network.
 
-The HTTP fetch is stubbed by injecting a fake `session` whose `.get` we control,
+The public_get transport is stubbed explicitly with a fake response provider,
 so `enrich_news` never touches the wire. Pure helpers (`_extract_text`,
 `_select_candidates`) are tested directly.
 """
@@ -17,6 +17,17 @@ if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
 from worldintel.core import enrich  # noqa: E402
+
+
+@pytest.fixture
+def stub_public_get(monkeypatch):
+    """Install a fake at the public acquisition transport boundary."""
+    def install(session):
+        def get(url, *, timeout, user_agent):
+            return session.get(url, timeout=timeout, headers={"User-Agent": user_agent})
+        monkeypatch.setattr(enrich, "public_get", get)
+        return session
+    return install
 
 
 # --------------------------------------------------------------------------- #
@@ -158,7 +169,7 @@ def test_hard_news_ranking_beats_local_crime_sports_and_pr():
     assert "Company announces product award" not in titles
 
 
-def test_recall_backfills_non_guardian_global_hard_news_beyond_normal_window():
+def test_recall_backfills_non_guardian_global_hard_news_beyond_normal_window(stub_public_get):
     guardian_items = [
         _item(f"Guardian politics analysis {n}", source="guardian",
               url=f"https://theguardian.com/{n}", tier=1,
@@ -189,7 +200,7 @@ def test_recall_backfills_non_guardian_global_hard_news_beyond_normal_window():
     ]
     bundle = {"news": guardian_items + non_guardian, "source_health": {}}
 
-    enrich.enrich_news(bundle, session=_FakeSession(), max_items=2,
+    enrich.enrich_news(bundle, session=stub_public_get(_FakeSession()), max_items=2,
                        recall_non_guardian=4)
 
     enriched_non_guardian = [
@@ -206,57 +217,57 @@ def test_recall_backfills_non_guardian_global_hard_news_beyond_normal_window():
 # --------------------------------------------------------------------------- #
 # enrich_news
 # --------------------------------------------------------------------------- #
-def test_raw_body_used_without_http_call():
+def test_raw_body_used_without_http_call(stub_public_get):
     body = "Full article text. " * 50  # ~1000 chars
     news = [_item("guardian", tier=1, raw_body=body)]
     bundle = {"news": news, "source_health": {}}
-    session = _FakeSession(raises=AssertionError("must not fetch"))
+    session = stub_public_get(_FakeSession(raises=AssertionError("must not fetch")))
     enrich.enrich_news(bundle, session=session, max_items=8, per_item_chars=1000)
     assert session.calls == []  # no HTTP for a raw_body item
     assert news[0]["content"]
     assert 800 <= len(news[0]["content"]) <= 1000
 
 
-def test_truncation_respects_per_item_chars():
+def test_truncation_respects_per_item_chars(stub_public_get):
     body = "word " * 500  # 2500 chars
     news = [_item("g", tier=1, raw_body=body)]
     bundle = {"news": news, "source_health": {}}
-    enrich.enrich_news(bundle, session=_FakeSession(), per_item_chars=1200)
+    enrich.enrich_news(bundle, session=stub_public_get(_FakeSession()), per_item_chars=1200)
     assert 800 <= len(news[0]["content"]) <= 1200
 
 
-def test_fetch_failure_leaves_content_empty_and_no_raise():
+def test_fetch_failure_leaves_content_empty_and_no_raise(stub_public_get):
     news = [
         _item("fetch-me", tier=1, raw_body="", url="http://x/fetch-me"),
         _item("also", tier=1, raw_body="already have body text here. " * 30),
     ]
     bundle = {"news": news, "source_health": {}}
-    session = _FakeSession(raises=ConnectionError("boom"))
+    session = stub_public_get(_FakeSession(raises=ConnectionError("boom")))
     # Must not raise even though the fetch blows up.
     enrich.enrich_news(bundle, session=session)
     assert news[0].get("content", "") == ""      # fetch failed -> empty
     assert news[1]["content"]                     # raw_body item still processed
 
 
-def test_successful_fetch_sets_content():
+def test_successful_fetch_sets_content(stub_public_get):
     filler = "More article body text. " * 40  # pad past MIN_CONTENT_CHARS
     html = f"<html><body><p>Fetched paragraph one.</p><p>{filler}</p></body></html>"
     news = [_item("f", tier=1, raw_body="", url="http://x/f")]
     bundle = {"news": news, "source_health": {}}
-    session = _FakeSession(resp=_Resp(text=html))
+    session = stub_public_get(_FakeSession(resp=_Resp(text=html)))
     enrich.enrich_news(bundle, session=session)
     assert session.calls == ["http://x/f"]
     assert "Fetched paragraph one." in news[0]["content"]
 
 
-def test_raw_body_removed_and_health_recorded():
+def test_raw_body_removed_and_health_recorded(stub_public_get):
     news = [
         _item("a", tier=1, raw_body="body a text. " * 65),
         _item("b", tier=1, raw_body="body b text. " * 65),
         _item("noise", tier=3, raw_body="junk"),
     ]
     bundle = {"news": news, "source_health": {}}
-    enrich.enrich_news(bundle, session=_FakeSession(), max_items=8)
+    enrich.enrich_news(bundle, session=stub_public_get(_FakeSession()), max_items=8)
     # raw_body gone from EVERY item, including the excluded tier-3 one.
     assert all("raw_body" not in i for i in news)
     health = bundle["source_health"]["enrich"]
@@ -264,19 +275,19 @@ def test_raw_body_removed_and_health_recorded():
     assert health["note"] == "2/2 enriched"
 
 
-def test_non_html_response_skipped():
+def test_non_html_response_skipped(stub_public_get):
     news = [_item("pdf", tier=1, raw_body="", url="http://x/pdf")]
     bundle = {"news": news, "source_health": {}}
-    session = _FakeSession(resp=_Resp(text="%PDF-1.4", ctype="application/pdf"))
+    session = stub_public_get(_FakeSession(resp=_Resp(text="%PDF-1.4", ctype="application/pdf")))
     enrich.enrich_news(bundle, session=session)
     assert news[0].get("content", "") == ""
     assert bundle["source_health"]["enrich"]["ok"] is False
 
 
-def test_enrich_news_never_raises_on_bad_bundle():
+def test_enrich_news_never_raises_on_bad_bundle(stub_public_get):
     # No 'news' key, weird shapes -> must not raise.
-    enrich.enrich_news({}, session=_FakeSession())
-    enrich.enrich_news({"news": None}, session=_FakeSession())
+    enrich.enrich_news({}, session=stub_public_get(_FakeSession()))
+    enrich.enrich_news({"news": None}, session=stub_public_get(_FakeSession()))
 
 
 # --------------------------------------------------------------------------- #
@@ -309,7 +320,7 @@ class _NoNetSession:
         raise RuntimeError("network disabled in unit tests")
 
 
-def test_health_note_carries_per_desk_breakdown():
+def test_health_note_carries_per_desk_breakdown(stub_public_get):
     a = {"title": "A", "url": "https://e.com/a",
          "raw_body": "<p>Body A. " + ("More text. " * 80) + "</p>"}
     b = {"title": "B", "url": "https://e.com/b", "raw_body": ""}
@@ -317,7 +328,7 @@ def test_health_note_carries_per_desk_breakdown():
     # Must pass a session: item b has no raw_body, so enrich_news would
     # otherwise open a real requests.Session and hit the network.
     enrich.enrich_news(bundle, candidates={"world": [a], "japan": [b]},
-                       session=_NoNetSession())
+                       session=stub_public_get(_NoNetSession()))
     note = bundle["source_health"]["enrich"]["note"]
     assert "world 1/1" in note
     assert "japan 0/1" in note
@@ -385,7 +396,7 @@ class _HeaderRecordingSession:
         return self.resp
 
 
-def test_fetch_html_sends_a_browser_user_agent():
+def test_fetch_html_sends_a_browser_user_agent(stub_public_get):
     """Measured live on 2026-08-15, same article URL under each UA:
 
         japantoday         "hermes-world-intel/1.0 (+enrich)" -> HTTP 403, 383 bytes
@@ -399,7 +410,7 @@ def test_fetch_html_sends_a_browser_user_agent():
     lead a story. `feeds._fetch_one` carries a comment describing precisely this
     zero-byte-202 behaviour; only enrich was left behind.
     """
-    session = _HeaderRecordingSession(_Resp("<html><body>ok</body></html>"))
+    session = stub_public_get(_HeaderRecordingSession(_Resp("<html><body>ok</body></html>")))
     enrich._fetch_html(session, "https://japantoday.com/x", 5)
     ua = session.headers_seen[0].get("User-Agent", "")
     assert ua.startswith("Mozilla/"), (
@@ -413,41 +424,41 @@ def test_fetch_html_sends_a_browser_user_agent():
     (_Resp(text='<p>short report</p>'), None, 'below_content_threshold'),
     (None, RuntimeError('secret URL ?token=private'), 'request_error'),
 ])
-def test_per_item_failure_diagnostics_are_safe(response, error, reason):
+def test_per_item_failure_diagnostics_are_safe(stub_public_get, response, error, reason):
     item = _item('airport attack', url='https://private.example/report?token=secret')
     bundle = {'news': [item]}
-    enrich.enrich_news(bundle, session=_FakeSession(response, error), candidates={'world': [item]})
+    enrich.enrich_news(bundle, session=stub_public_get(_FakeSession(response, error)), candidates={'world': [item]})
     outcome = item['enrichment']
     assert outcome['reason'] == reason
     assert outcome['status'] == 'failed'
     assert 'secret' not in str(outcome) and 'private' not in str(outcome)
     assert not item.get('content')
 
-def test_protected_alternate_replaces_only_failed_same_event_slot():
+def test_protected_alternate_replaces_only_failed_same_event_slot(stub_public_get):
     failed = _item('airport attack', url='https://a/report')
     failed['enrichment'] = {'status': 'failed', 'reason': 'http_error', 'http_status': 403}
     alternate = _item('airport attack followup', url='https://b/report', raw_body='Authorities reported an attack on the airport. ' * 30)
     unrelated = _item('unrelated', raw_body='Unrelated article words. ' * 100)
     selected = {'world': [failed, unrelated]}
     event = {'id': 'one', 'urls': [failed['url'], alternate['url']], 'selected_urls': [failed['url']]}
-    enrich.enrich_protected_alternates([failed, alternate, unrelated], selected, [event], session=_FakeSession())
+    enrich.enrich_protected_alternates([failed, alternate, unrelated], selected, [event], session=stub_public_get(_FakeSession()))
     assert selected['world'] == [alternate, unrelated]
     assert event['selected_urls'] == [alternate['url']]
     assert event['enrichment_attempts'][0]['reason'] == 'http_error'
     assert event['enrichment_attempts'][1]['status'] == 'enriched'
 
 
-def test_protected_alternate_does_not_use_unrelated_or_short_sources():
+def test_protected_alternate_does_not_use_unrelated_or_short_sources(stub_public_get):
     failed = _item('airport attack', url='https://a/report')
     short = _item('airport attack followup', url='https://b/report', raw_body='longword' * 150)
     unrelated = _item('unrelated', raw_body='Article words available. ' * 100)
     selected = {'world': [failed]}
     event = {'urls': [failed['url'], short['url']], 'selected_urls': [failed['url']]}
-    enrich.enrich_protected_alternates([failed, short, unrelated], selected, [event], session=_FakeSession())
+    enrich.enrich_protected_alternates([failed, short, unrelated], selected, [event], session=stub_public_get(_FakeSession()))
     assert selected['world'] == [failed]
     assert event['selected_urls'] == [failed['url']]
 
-def test_protected_alternate_attempts_are_bounded_and_keep_other_event_slots():
+def test_protected_alternate_attempts_are_bounded_and_keep_other_event_slots(stub_public_get):
     failed = [_item('airport attack', url=f'https://failed/{n}') for n in range(2)]
     pool = list(failed)
     events = []
@@ -456,14 +467,14 @@ def test_protected_alternate_attempts_are_bounded_and_keep_other_event_slots():
         pool.extend(alternatives)
         events.append({'urls': [item['url']] + [a['url'] for a in alternatives], 'selected_urls': [item['url']]})
     selected = {'world': list(failed)}
-    session = _FakeSession(_Resp(text='<p>short report</p>'))
+    session = stub_public_get(_FakeSession(_Resp(text='<p>short report</p>')))
     enrich.enrich_protected_alternates(pool, selected, events, session=session)
     assert len(session.calls) == 4
     assert all(len(event['enrichment_attempts']) == 3 for event in events)
     assert selected['world'] == failed
 
 
-def test_protected_alternate_cannot_replace_another_event_or_desk():
+def test_protected_alternate_cannot_replace_another_event_or_desk(stub_public_get):
     failed = _item('airport attack', url='https://a/report')
     protected = _item('airport attack followup', url='https://b/report', raw_body='Real article words available. ' * 100)
     wrong_desk = _item('airport attack followup', url='https://c/report', raw_body='Real article words available. ' * 100)
@@ -471,12 +482,12 @@ def test_protected_alternate_cannot_replace_another_event_or_desk():
     selected = {'world': [failed, protected]}
     events = [{'urls': [failed['url'], protected['url'], wrong_desk['url']], 'selected_urls': [failed['url']]},
               {'urls': [protected['url']], 'selected_urls': [protected['url']]}]
-    enrich.enrich_protected_alternates([failed, protected, wrong_desk], selected, events, session=_FakeSession())
+    enrich.enrich_protected_alternates([failed, protected, wrong_desk], selected, events, session=stub_public_get(_FakeSession()))
     assert selected['world'] == [failed, protected]
     assert events[0]['selected_urls'] == [failed['url']]
 
 
-def test_third_protected_event_enrichment_honors_selection_limit():
+def test_third_protected_event_enrichment_honors_selection_limit(stub_public_get):
     first = _item('airport incident', url='https://a/first')
     second = _item('airport incident', url='https://b/second')
     third = _item('airport incident', url='https://c/third')
@@ -485,7 +496,7 @@ def test_third_protected_event_enrichment_honors_selection_limit():
     events = [{'urls': [x['url']], 'selected_urls': [x['url']], 'max_events': 3} for x in [first,second,third]]
     events[-1]['urls'].append(alternate['url'])
     selected = {'world': [first,second,third]}
-    enrich.enrich_protected_alternates([first,second,third,alternate], selected, events, session=_FakeSession())
+    enrich.enrich_protected_alternates([first,second,third,alternate], selected, events, session=stub_public_get(_FakeSession()))
     assert selected['world'][-1] is alternate
     assert events[-1]['selected_urls'] == [alternate['url']]
 

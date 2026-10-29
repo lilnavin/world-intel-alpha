@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from xml.etree import ElementTree as ET
 
 import requests
+from worldintel.core.safe_fetch import public_get
 
 def _browser_ua() -> str:
     """Browser shape is required by publishers serving article bodies."""
@@ -186,8 +187,7 @@ def _resolve_gnews(session, url: str, timeout: int = 10) -> str:
     if not session or "news.google.com" not in (url or ""):
         return ""
     try:
-        resp = session.get(url, timeout=timeout, allow_redirects=True,
-                           headers={"User-Agent": _browser_ua()})
+        resp = public_get(url, timeout=timeout, user_agent=_browser_ua())
         final = (getattr(resp, "url", "") or "").strip()
     except wi_config.ConfigError:
         raise
@@ -206,8 +206,8 @@ def _fetch_one(session, feed: dict, health: dict) -> list:
         # passes in its own session, so a session-level default would never
         # reach the cron. japannews.yomiuri.co.jp serves a zero-byte HTTP 202
         # without this UA and a full HTTP 200 with it.
-        resp = session.get(feed["url"], timeout=_HTTP_TIMEOUT,
-                           headers={"User-Agent": _browser_ua()})
+        resp = public_get(feed["url"], timeout=_HTTP_TIMEOUT,
+                          user_agent=_browser_ua())
         resp.raise_for_status()
         items = _parse_feed(resp.content, feed)
     except wi_config.ConfigError:

@@ -1,3 +1,4 @@
+import pytest
 import os
 import sys
 
@@ -105,6 +106,17 @@ def test_parse_malformed_date_returns_empty_published():
     assert items[1]["url"] == "https://e.com/story-2"
 
 
+@pytest.fixture
+def stub_public_get(monkeypatch):
+    """Install a fake at the public acquisition transport boundary."""
+    def install(session):
+        def get(url, *, timeout, user_agent):
+            return session.get(url, timeout=timeout, headers={"User-Agent": user_agent})
+        monkeypatch.setattr(feeds, "public_get", get)
+        return session
+    return install
+
+
 class _FakeResp:
     def __init__(self, content=b"", status=200, url=""):
         self.content = content
@@ -145,14 +157,14 @@ class _HeaderRecordingSession:
         return _FakeResp(self.content, 200, url=url)
 
 
-def test_fetch_one_sends_the_crawler_user_agent_on_the_request():
+def test_fetch_one_sends_the_crawler_user_agent_on_the_request(stub_public_get):
     """The UA must ride on the request, not just on a session feeds.py owns.
 
     fetch_sources.fetch_all supplies its own session, so a session-level default
     never reaches the cron — which is how japannews.yomiuri.co.jp ended up
     serving a zero-byte HTTP 202 in production.
     """
-    session = _HeaderRecordingSession(_fixture("rss_bbc.xml"))
+    session = stub_public_get(_HeaderRecordingSession(_fixture("rss_bbc.xml")))
     feed = {"name": "bbc-world", "desk": "world", "tier": 1,
             "url": "https://ok.test/rss"}
     items = feeds._fetch_one(session, feed, {})
@@ -161,15 +173,15 @@ def test_fetch_one_sends_the_crawler_user_agent_on_the_request():
     assert session.headers_seen == [{"User-Agent": feeds._browser_ua()}]
 
 
-def test_fetch_feeds_merges_and_records_health():
+def test_fetch_feeds_merges_and_records_health(stub_public_get):
     registry = [
         {"name": "ok-feed", "desk": "world", "tier": 1, "url": "https://ok.test/rss"},
         {"name": "dead-feed", "desk": "us", "tier": 2, "url": "https://dead.test/rss"},
     ]
-    session = _FakeSession({
+    session = stub_public_get(_FakeSession({
         "ok.test": _FakeResp(_fixture("rss_bbc.xml")),
         "dead.test": RuntimeError("boom"),
-    })
+    }))
     health = {}
     items = feeds.fetch_feeds({}, "", health, session=session, registry=registry)
 
@@ -180,16 +192,16 @@ def test_fetch_feeds_merges_and_records_health():
     assert "boom" in health["feed:dead-feed"]["note"]
 
 
-def test_fetch_feeds_http_error_is_not_fatal():
+def test_fetch_feeds_http_error_is_not_fatal(stub_public_get):
     registry = [{"name": "f404", "desk": "world", "tier": 2,
                  "url": "https://x.test/rss"}]
-    session = _FakeSession({"x.test": _FakeResp(b"", 404)})
+    session = stub_public_get(_FakeSession({"x.test": _FakeResp(b"", 404)}))
     health = {}
     assert feeds.fetch_feeds({}, "", health, session=session, registry=registry) == []
     assert health["feed:f404"]["ok"] is False
 
 
-def test_gnews_items_are_flagged_without_a_resolution_request():
+def test_gnews_items_are_flagged_without_a_resolution_request(stub_public_get):
     """fetch_feeds must NOT try to resolve news.google.com URLs.
 
     Google serves an HTTP 200 JS-redirect page rather than a 302, so resolution
@@ -203,11 +215,11 @@ def test_gnews_items_are_flagged_without_a_resolution_request():
       <link>https://news.google.com/rss/articles/ABC123</link>
       <pubDate>Sat, 02 Aug 2026 06:00:00 GMT</pubDate></item>
     </channel></rss>"""
-    session = _FakeSession({
+    session = stub_public_get(_FakeSession({
         "news.google.com/rss/search": _FakeResp(gnews_xml),
         "news.google.com/rss/articles": _FakeResp(
             b"", 200, url="https://www.reuters.com/world/real-story"),
-    })
+    }))
     health = {}
     items = feeds.fetch_feeds({}, "", health, session=session, registry=registry)
     assert items[0]["url"] == "https://news.google.com/rss/articles/ABC123"
@@ -216,54 +228,54 @@ def test_gnews_items_are_flagged_without_a_resolution_request():
     assert session.calls == ["https://news.google.com/rss/search?q=x"]
 
 
-def test_gnews_resolution_failure_keeps_url_and_flags_it():
+def test_gnews_resolution_failure_keeps_url_and_flags_it(stub_public_get):
     registry = [{"name": "reuters-gnews", "desk": "world", "tier": 1,
                  "url": "https://news.google.com/rss/search?q=x"}]
     gnews_xml = b"""<?xml version="1.0"?><rss version="2.0"><channel>
       <item><title>Wire story</title>
       <link>https://news.google.com/rss/articles/ABC123</link></item>
     </channel></rss>"""
-    session = _FakeSession({
+    session = stub_public_get(_FakeSession({
         "news.google.com/rss/search": _FakeResp(gnews_xml),
         "news.google.com/rss/articles": RuntimeError("timeout"),
-    })
+    }))
     health = {}
     items = feeds.fetch_feeds({}, "", health, session=session, registry=registry)
     assert items[0]["url"] == "https://news.google.com/rss/articles/ABC123"
     assert items[0]["gnews_unresolved"] is True
 
 
-def test_resolve_gnews_returns_publisher_url():
+def test_resolve_gnews_returns_publisher_url(stub_public_get):
     """_resolve_gnews is no longer called by _fetch_one but stays correct and
     available for if Google restores real redirects."""
-    session = _FakeSession({"news.google.com/rss/articles": _FakeResp(
-        b"", 200, url="https://www.reuters.com/world/real-story")})
+    session = stub_public_get(_FakeSession({"news.google.com/rss/articles": _FakeResp(
+        b"", 200, url="https://www.reuters.com/world/real-story")}))
     resolved = feeds._resolve_gnews(
         session, "https://news.google.com/rss/articles/ABC123")
     assert resolved == "https://www.reuters.com/world/real-story"
 
 
-def test_resolve_gnews_returns_empty_when_it_never_leaves_google():
+def test_resolve_gnews_returns_empty_when_it_never_leaves_google(stub_public_get):
     """Today's actual behaviour: HTTP 200 with a JS redirect, final URL still
     on news.google.com — which is why the call was removed from _fetch_one."""
-    session = _FakeSession({"news.google.com/rss/articles": _FakeResp(
-        b"", 200, url="https://news.google.com/rss/articles/ABC123")})
+    session = stub_public_get(_FakeSession({"news.google.com/rss/articles": _FakeResp(
+        b"", 200, url="https://news.google.com/rss/articles/ABC123")}))
     assert feeds._resolve_gnews(
         session, "https://news.google.com/rss/articles/ABC123") == ""
 
 
-def test_resolve_gnews_never_raises():
-    session = _FakeSession({"news.google.com": RuntimeError("timeout")})
+def test_resolve_gnews_never_raises(stub_public_get):
+    session = stub_public_get(_FakeSession({"news.google.com": RuntimeError("timeout")}))
     assert feeds._resolve_gnews(
         session, "https://news.google.com/rss/articles/ABC123") == ""
     assert feeds._resolve_gnews(session, "https://www.reuters.com/x") == ""
     assert feeds._resolve_gnews(None, "https://news.google.com/x") == ""
 
 
-def test_check_feeds_reports_per_feed_status():
+def test_check_feeds_reports_per_feed_status(stub_public_get):
     registry = [{"name": "ok-feed", "desk": "world", "tier": 1,
                  "url": "https://ok.test/rss"}]
-    session = _FakeSession({"ok.test": _FakeResp(_fixture("rss_bbc.xml"))})
+    session = stub_public_get(_FakeSession({"ok.test": _FakeResp(_fixture("rss_bbc.xml"))}))
     rows = feeds.check_feeds(session=session, registry=registry)
     assert rows == [{"feed": "ok-feed", "desk": "world",
                      "status": "OK", "count": 2}]

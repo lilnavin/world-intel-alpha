@@ -243,6 +243,7 @@ def test_every_source_failing_still_yields_valid_bundle(monkeypatch, tmp_path):
         raise ConnectionError("network down")
 
     monkeypatch.setattr(fs.requests.Session, "get", boom)
+    monkeypatch.setattr(fs.feeds, "public_get", boom)
     config = {"twelvedata_key": "x", "fred_key": "x"}
     bundle = fs.fetch_all(config, str(tmp_path), "2026-06-28")
 
@@ -261,6 +262,7 @@ def test_missing_keys_skip_with_no_api_key(tmp_path, monkeypatch):
     # Block the no-key sources' network so this stays offline-safe.
     monkeypatch.setattr(fs.requests.Session, "get",
                         lambda *a, **k: (_ for _ in ()).throw(ConnectionError("offline")))
+    monkeypatch.setattr(fs.feeds, "public_get", fs.requests.Session.get)
     bundle = fs.fetch_all({}, str(tmp_path), "2026-06-28")
     for src in ("twelvedata", "fred"):
         assert bundle["source_health"][src]["note"] == "no api key"
@@ -429,6 +431,7 @@ def test_new_sources_present_and_isolated_on_failure(monkeypatch, tmp_path):
     filings/earnings_calendar present and both sources ok False."""
     monkeypatch.setattr(fs.requests.Session, "get",
                         lambda *a, **k: (_ for _ in ()).throw(ConnectionError("offline")))
+    monkeypatch.setattr(fs.feeds, "public_get", fs.requests.Session.get)
     # _yf_earnings_date is already stubbed offline by the autouse fixture.
     bundle = fs.fetch_all({}, str(tmp_path), "2026-07-02")
 

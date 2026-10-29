@@ -13,7 +13,7 @@ sources:
   - name: bbc-world
     desk: world
     tier: 1
-    url: http://feeds.bbci.co.uk/news/world/rss.xml
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
   - name: guardian-world
     desk: world
     tier: 1
@@ -157,7 +157,7 @@ sources:
   - name: bbc-business
     desk: finance
     tier: 1
-    url: http://feeds.bbci.co.uk/news/business/rss.xml
+    url: https://feeds.bbci.co.uk/news/business/rss.xml
   - name: guardian-business
     desk: finance
     tier: 1

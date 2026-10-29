@@ -1,6 +1,7 @@
 # Direct runtime dependencies verified in the passing execution environment.
 # Transitive dependencies are not a complete release hash lock.
 requests==2.33.0
+urllib3==2.8.0
 PyYAML==6.0.3
 beautifulsoup4==4.15.0
 yfinance==1.5.1
