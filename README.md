@@ -15,16 +15,63 @@ claims against the original reporting. [Read the limitations](#accuracy-privacy-
 
 ## See the briefing
 
-![Offline demo showing source-linked story cards and briefing navigation, including the fictional Harbor desk.](docs/images/offline-demo.png)
+The briefing brings news desks, source-linked story cards and supporting sections
+into one local HTML page. Tabs let you move between desks; the bundled demo
+includes World, the fictional Harbor Island desk and Finance.
 
-*Fabricated offline demo: all stories, figures, source labels and links are
-invented, including the Harbor desk. Screenshot created 2026-10-29; this date
-records the preview's creation, not news freshness or live coverage.*
+<a href="docs/images/offline-demo.png"><img src="docs/images/offline-demo.png" width="560" alt="Offline demo overview with desk tabs, a World story card and supporting briefing sections."></a>
 
-The briefing combines headlines, explanations of why stories matter, article
-summaries and source links. Coverage profiles choose the news desks and finance
-inputs. The demo shows the layout with bundled fictional material; generate it
-locally to explore the HTML.
+*All stories, figures, sources and URLs in these screenshots are fictional.
+Screenshots created 2026-10-29; this date records preview creation, not news
+freshness or live coverage. Select an image to view it at full size.*
+
+### World news card
+
+<a href="docs/images/offline-demo-world.png"><img src="docs/images/offline-demo-world.png" width="760" alt="Fictional World card: Island partners agree on a shared water reserve, with why it matters, summary, Example Wire source link and infrastructure tag."></a>
+
+A full story card gives you five things to read or inspect:
+
+- **Headline:** the demo's "Island partners agree on a shared water reserve" names
+  the invented development.
+- **Why it matters:** a short explanation connects that agreement to emergency
+  storage across three fictional ports.
+- **Summary:** the body adds the planned weekly storage readings and seasonal
+  joint response, and identifies the story as an invented example.
+- **Source link:** the **Example Wire** chip opens the demo's placeholder source
+  URL. In a live briefing, use source links to inspect the underlying reporting.
+- **Tags:** `infrastructure` labels this story's topic.
+
+### Finance card
+
+<a href="docs/images/offline-demo-finance.png"><img src="docs/images/offline-demo-finance.png" width="760" alt="Fictional Finance Brief card: Example Components funds a new testing line, with an explanation, cash-reserves summary, The Example Post source link and investment tag."></a>
+
+Finance Brief cards use the same headline, explanation, summary, source and tag
+layout. In this fictional example, **Example Components** funds a testing line
+from cash reserves; the explanation connects the spending to product reliability,
+the source chip is **The Example Post**, and the tag is `investment`. This is
+sample prose, not business reporting or investment advice.
+
+This card is separate from the Finance desk's market scoreboard and post-earnings
+writeups. Optional source review covers full story cards, including Finance Brief
+cards; it does not review every finance figure or supporting narrative.
+[Review scope](#what-source-review-checks).
+
+### Other briefing sections
+
+| Section | What it adds | Fictional demo example |
+| --- | --- | --- |
+| Signals | A selected signal with a reason and source link, plus smaller "Also buried" items when present | Publicly comparable storage readings and a shared reporting format |
+| Threads | A short update on an ongoing thread, with its starting date | `shared-reserves`: partners agree on reporting dates |
+| Radar | Items or milestones to watch next | The first comparable reserve table |
+| Market scoreboard | Market levels and percentage changes, with supporting notes and an interpretive read when supplied | Synthetic index and risk observations |
+| Post-earnings | Company results writeups alongside available earnings figures, plus an "Also reported" line when supplied | The invented `EXMP` quarter and `DEMO` report |
+
+These sections depend on the configured inputs and the material available for a
+run; some profiles do not supply all of them. Coverage profiles choose desks
+and inputs. Cards and sections organize the resulting output, rather than acting
+as independently toggleable features. [Choose your coverage](#choose-your-coverage)
+for the starting profiles, or [run the demo](#quickstart-try-the-offline-demo) to
+explore the HTML locally.
 
 ## Quickstart: try the offline demo
 
@@ -158,7 +205,8 @@ accepted or complete output.
 
 ## Choose your coverage
 
-These are starting profiles, not guarantees of source availability or complete
+These starting profiles choose news desks and additional inputs, not individual
+card or section layouts. They do not guarantee source availability or complete
 coverage. Use the corresponding name with `init --profile`.
 
 | Profile | News desks | Additional inputs | Source setup |
