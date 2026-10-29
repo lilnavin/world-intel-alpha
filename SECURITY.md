@@ -28,14 +28,18 @@ Review is opt-in; alpha live use should enable both `source_review_enabled` and
 `source_review_repair_enabled` in `analysis`. Disabled review preserves legacy
 behavior, including possible model KB-delta application in normal runs.
 
-The [manual experimental-alpha policy](docs/experimental-alpha.md) covers an
-audited source commit and source ZIP only. It neither changes the strict
-publication checker nor certifies live output or production readiness. A full
-probe HOLD is eligible only as a disclosed safe failure with complete private
+The [source-publication decision](docs/experimental-alpha.md) supersedes the
+historical source-alpha eligibility checklist for the audited source release,
+including its unsupported-artifact publication block. It does not change runtime
+review barriers, security controls or the strict production checker, and does
+not certify live output or production readiness. Under the historical policy,
+a full probe HOLD is eligible only as a disclosed safe failure with complete private
 evidence: no new/replaced briefing, MEDIA handoff, delivery or model KB-delta
 application. Status, raw fetch caches and model captures may still be written.
-Generated full output with a positively unsupported factual claim blocks that
-candidate, even if automated checks accepted it.
+Generated full output with a positively unsupported factual claim blocked that
+source-alpha candidate, even if automated checks accepted it. The documented
+source-release exception does not count as independent content acceptance or
+production qualification.
 
 Report vulnerabilities privately through the repository host's private reporting
 channel when available. If it is unavailable, request a private contact channel

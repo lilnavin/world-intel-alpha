@@ -1,151 +1,168 @@
 # World Intel
 
-Configurable news briefing software with source collection, model-assisted
-analysis and HTML output. This public source release is available for use,
-feedback and continued improvement; live summaries can contain factual errors.
+Turn configured news feeds and optional finance sources into a source-linked
+HTML briefing you can read locally. World Intel is for technically comfortable
+readers who want to choose their coverage, inspect model-assisted summaries,
+and follow the reporting behind each story.
 
-## Current status and known accuracy issue
+**Accuracy:** summaries can contain factual errors. Optional source review covers
+full story cards, not Signals, Radar or every other section. Check important
+claims against the original reporting. [Read the limitations](#accuracy-privacy-and-limitations).
 
-Source review checks full story cards, but does not cover Signals, Radar and
-other auxiliary summaries. In the full-profile release check, a Signal omitted
-which vehicle types a proposed eligibility rule covered, making the rule sound
-broader than its captured source supported. This defect remains open. Verify
-important claims against their original sources, including when story-card
-review is enabled.
+[See the briefing](#see-the-briefing) · [Try the demo](#quickstart-try-the-offline-demo) ·
+[Generate live](#generate-a-live-briefing) · [Choose coverage](#choose-your-coverage) ·
+[How it works](#how-it-works) · [Documentation](#documentation-and-contributing)
 
-The owner approved source publication with this limitation disclosed. The
-runtime source at commit `72793fb25df58b82c86b478254ddf80fdbdf338d`
-passed the recorded offline suite (2,585 passed, four skipped), fresh installation,
-four Windows/Linux CI jobs and a minimal live content review. The full run
-completed technically but failed independent content review for the issue above.
-This publication changes documentation only after that audited source commit;
-it does not establish full-output accuracy or production qualification.
+## See the briefing
 
-Two scheduled production acceptance days and independently verified delivery
-remain pending. See the [release policy and limitations](docs/experimental-alpha.md).
+The briefing brings news desks, source-linked story cards and supporting sections
+into one local HTML page. Tabs let you move between desks; the bundled demo
+includes World, the fictional Harbor Island desk and Finance.
 
-Configuration drives runtime paths, sources, SEC lane switches, tuning and news
-desks. Dry runs do not publish or replace briefing files or knowledge state.
-Private model evidence can be retained separately for diagnosis and review.
+<a href="docs/images/offline-demo.png"><img src="docs/images/offline-demo.png" width="560" alt="Offline demo overview with desk tabs, a World story card and supporting briefing sections."></a>
 
-Three example profiles live in `config/`: `minimal` (world news, no SEC), `world`
-(world/US/finance, no SEC), and `full` (multi-country reference profile). Copy a
-profile outside Git and set `WORLD_INTEL_CONFIG` to its path. Replace the full
-profile's synthetic contact before enabling real SEC requests. Source feeds and
-analysis require network access; `--dry` is not an offline mode.
+*All stories, figures, sources and URLs in these screenshots are fictional.
+Screenshots created 2026-10-29; this date records preview creation, not news
+freshness or live coverage. Select an image to view it at full size.*
 
-Desk configuration order controls selection and prompt order; `tab.order`
-controls national-tab display order. `target_stories[1]` is the schema maximum;
-the lower bound remains an editorial target, not permission to invent stories.
-Normal runs use `tuning.per_desk_slots` for candidate counts.
-`tuning.enrichment.max_items` applies only to the legacy enrichment helper when
-called without preselected candidates, not to the normal pipeline.
+### World news card
 
-Known limitations: built-in desk vocabulary still gives those desks a salience
-advantage; feed desk strings are not yet cross-validated against configured IDs.
-Review feed desk spelling carefully. Prompt normalization remains deferred.
+<a href="docs/images/offline-demo-world.png"><img src="docs/images/offline-demo-world.png" width="760" alt="Fictional World card: Island partners agree on a shared water reserve, with why it matters, summary, Example Wire source link and infrastructure tag."></a>
 
-## Development setup
+A full story card gives you five things to read or inspect:
 
-Use Python 3.11 or 3.12. From this checkout, create an isolated environment.
+- **Headline:** the demo's "Island partners agree on a shared water reserve" names
+  the invented development.
+- **Why it matters:** a short explanation connects that agreement to emergency
+  storage across three fictional ports.
+- **Summary:** the body adds the planned weekly storage readings and seasonal
+  joint response, and identifies the story as an invented example.
+- **Source link:** the **Example Wire** chip opens the demo's placeholder source
+  URL. In a live briefing, use source links to inspect the underlying reporting.
+- **Tags:** `infrastructure` labels this story's topic.
+
+### Finance card
+
+<a href="docs/images/offline-demo-finance.png"><img src="docs/images/offline-demo-finance.png" width="760" alt="Fictional Finance Brief card: Example Components funds a new testing line, with an explanation, cash-reserves summary, The Example Post source link and investment tag."></a>
+
+Finance Brief cards use the same headline, explanation, summary, source and tag
+layout. In this fictional example, **Example Components** funds a testing line
+from cash reserves; the explanation connects the spending to product reliability,
+the source chip is **The Example Post**, and the tag is `investment`. This is
+sample prose, not business reporting or investment advice.
+
+This card is separate from the Finance desk's market scoreboard and post-earnings
+writeups. Optional source review covers full story cards, including Finance Brief
+cards; it does not review every finance figure or supporting narrative.
+[Review scope](#what-source-review-checks).
+
+### Other briefing sections
+
+| Section | What it adds | Fictional demo example |
+| --- | --- | --- |
+| Signals | A selected signal with a reason and source link, plus smaller "Also buried" items when present | Publicly comparable storage readings and a shared reporting format |
+| Threads | A short update on an ongoing thread, with its starting date | `shared-reserves`: partners agree on reporting dates |
+| Radar | Items or milestones to watch next | The first comparable reserve table |
+| Market scoreboard | Market levels and percentage changes, with supporting notes and an interpretive read when supplied | Synthetic index and risk observations |
+| Post-earnings | Company results writeups alongside available earnings figures, plus an "Also reported" line when supplied | The invented `EXMP` quarter and `DEMO` report |
+
+These sections depend on the configured inputs and the material available for a
+run; some profiles do not supply all of them. Coverage profiles choose desks
+and inputs. Cards and sections organize the resulting output, rather than acting
+as independently toggleable features. [Choose your coverage](#choose-your-coverage)
+for the starting profiles, or [run the demo](#quickstart-try-the-offline-demo) to
+explore the HTML locally.
+
+## Quickstart: try the offline demo
+
+### Prerequisites
+
+Use Git and Python **3.11 or 3.12** on Windows or Linux. Installation needs
+internet access; running the installed demo needs no network, API keys or model
+subscription.
+
+On Ubuntu/Debian, install the matching Python venv package first (for example,
+`python3.12-venv` for Python 3.12).
+
+### Install and run
+
 Windows PowerShell:
 
 ```powershell
+git clone https://github.com/lilnavin/world-intel-alpha.git
+cd world-intel-alpha
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install --require-hashes -r requirements.lock
 .venv/Scripts/python.exe -m pip install --no-deps --no-build-isolation .
-.venv/Scripts/python.exe -m pip check
-.venv/Scripts/python.exe -m pytest tests -q
-.venv/Scripts/python.exe tools/scan_secrets.py --tracked
+.venv/Scripts/world-intel.exe demo --out out/demo
 ```
 
 Linux:
 
 ```bash
+git clone https://github.com/lilnavin/world-intel-alpha.git
+cd world-intel-alpha
 python3 -m venv .venv
 .venv/bin/python -m pip install --require-hashes -r requirements.lock
 .venv/bin/python -m pip install --no-deps --no-build-isolation .
-.venv/bin/python -m pip check
-.venv/bin/python -m pytest tests -q
-.venv/bin/python tools/scan_secrets.py --tracked
-```
-
-Dependencies, including transitive and build dependencies, are pinned and
-hash-locked. `python tools/verify_install.py` separately creates a fresh venv,
-installs the package, and checks actual console commands outside the checkout.
-No API keys, private owner configuration or model subscription are needed for
-these tests. Installing dependencies requires internet access.
-
-Three explicit live-service
-tests are skipped; socket/DNS, curl-backed requests and live Codex invocations
-are blocked during tests. This test guard is not a runtime `--offline` feature.
-It is also not an operating-system network sandbox for arbitrary subprocesses.
-
-GitHub Actions runs dependency checks, tests and the tracked-content pattern
-scan on Windows and Ubuntu, with Python 3.11 and 3.12, on pushes and pull
-requests. A missing/unreadable tracked file fails the scan. It scans the current
-checkout, not Git history, and does not replace the publication security audit.
-
-The source export excludes private configuration, captures, live launchers
-and historical planning documents. A generic scratch-deployment tool and launcher
-template are included. Owner data belongs outside this repository.
-Strict production publication requires installed-package tests, Windows/Linux
-CI, the applicable replay or reviewed coverage-regression evidence, and a clean
-history audit.
-The version 2 acceptance policy requires two consecutive scheduled days after
-freezing the candidate and profile, independently verified delivery, and owner
-content acceptance. Legacy version 1 manifests retain their seven-run policy.
-Manual runs and successful model passes do not replace scheduled acceptance.
-The separate manual source-alpha policy does not change those checker gates or
-create a machine `publication_ready` result. See the
-[policy and known limitations](docs/experimental-alpha.md) before live use.
-
-## Try the installed commands
-
-Activate your virtual environment, or use its `Scripts/world-intel.exe` on
-Windows / `bin/world-intel` on Linux. The following demo is fully offline and
-uses invented stories and figures:
-
-```text
-world-intel --help
+source .venv/bin/activate
 world-intel demo --out out/demo
 ```
 
-Choose a configuration path outside all Git repositories. For a normal clone,
-its parent directory is usually suitable:
+Dependencies, including build dependencies, are pinned and hash-locked. For
+development checks and tests, see [Contributing](CONTRIBUTING.md).
 
-```text
-world-intel init --profile minimal --out ../worldintel.yaml
-world-intel validate --config ../worldintel.yaml --strict
-world-intel validate --config ../worldintel.yaml --explain
+### Open your briefing
+
+The command prints the created file's absolute path. Open
+`out/demo/world-intel-demo.html` in your browser, or use:
+
+```powershell
+# Windows PowerShell
+Start-Process out/demo/world-intel-demo.html
 ```
 
-Commands never overwrite an existing profile or demo. Read and edit your profile
-before a live run. `doctor` reports local prerequisites, not successful login:
-
-```text
-world-intel doctor --config ../worldintel.yaml
+```bash
+# Linux desktop
+xdg-open out/demo/world-intel-demo.html
 ```
 
-After configuring and authenticating Codex, a live dry run is:
+The demo refuses to overwrite an existing file. To run it again, choose a fresh
+output directory, such as `out/demo-2`.
 
-```text
-world-intel run --config ../worldintel.yaml --dry --force
+## Generate a live briefing
+
+### What you need
+
+In addition to the installation above, live generation needs network access and
+an **installed, authenticated Codex CLI** with model access. Codex is the supported
+analysis engine. The `minimal` profile needs no source API credentials; optional
+providers have their own setup requirements below.
+
+### Create your configuration
+
+Keep your profile, runtime data and credentials **outside every Git checkout**.
+The examples below use your home directory, assuming it is not itself inside a
+Git repository. Choose another private location if needed. From the installed
+checkout (with the environment activated on Linux), create a starting profile:
+
+```powershell
+# Windows PowerShell
+.venv/Scripts/world-intel.exe init --profile minimal --out "$env:USERPROFILE/worldintel.yaml"
 ```
 
-This last command uses external providers and model access; it is not part of
-the offline demo proof. `run --offline` is explicitly unsupported.
-`telegram` and `hermes-cron` delivery policies both emit the Hermes MEDIA
-handoff; standalone users should choose `file` or `stdout`. No direct Telegram
-Bot API transport or delivery receipt is implied.
+```bash
+# Linux
+world-intel init --profile minimal --out "$HOME/worldintel.yaml"
+```
 
-## Source review and private evidence
+`init` refuses to overwrite an existing profile. Read and edit the file before
+running it: it controls sources, local paths and editorial instructions. Set
+`delivery.adapter: file` for a local file, or keep `stdout` for a path on standard
+output. Both leave transport to you.
 
-Coverage checks establish registered-event coverage and source eligibility;
-they do not establish factual correctness. For alpha live use, both existing
-review settings below are recommended. To enable bounded review of final full
-story cards against their captured cited sources, add these settings to the
-private profile's existing `analysis` section:
+For live use, enable both settings in the profile's existing `analysis` section
+(create that section if absent):
 
 ```yaml
 analysis:
@@ -153,56 +170,139 @@ analysis:
   source_review_repair_enabled: true
 ```
 
-Review remains opt-in. Omitted or disabled review retains legacy model-call
-behavior without this source-review barrier; normal non-dry runs may also apply
-model-authored KB deltas. Repair requires review to be enabled.
-Review consumes model access or subscription quota and uses the remaining
-analysis deadline, with at most 120 seconds per call. With only review enabled,
-it adds at most one invocation and holds unsupported or uncertain cards. The
-optional repair setting permits one correction of identified unsupported cards
-and one final review of every card: at most three added invocations in total.
-Before review, a staged preflight can remove an extra citation only when it
-uniquely matches a selected source with no captured article body and the card
-retains a substantive full-text tier-1/2 source. Unknown or ambiguous citations,
-and cards without a usable remaining source, still hold the run. The private
-evidence binds the original and retained citation lists; all claims must then
-pass review against the retained sources. Citation cleanup is adopted only
-after acceptance. It does not remove a card or change its prose.
-Release validation refuses cleanup whose original card cannot be reconstructed
-exactly from the retained generation evidence.
+This opt-in check consumes additional model access and may withhold a briefing.
+It does not review every section. [Review scope and behavior](#what-source-review-checks).
 
-The optional prose correction preserves the remaining citations and card
-membership, and adopts corrected prose only after final acceptance. There is
-no further correction or retry if it fails.
-Some explicit claim/quote contradictions, including simple cases where a stated
-plan is presented as a completed action, are rejected deterministically and use
-that same correction limit. This narrow check abstains on unsupported grammar;
-it is not general proof that every claim follows from its source.
-Missing sources, invalid responses, unsupported final claims, or exhausted
-budget hold the reviewed run before a new/replaced briefing, MEDIA handoff,
-delivery, or model KB-delta application. A normal HOLD may still persist status,
-raw fetch caches and private model captures; identify these writes in probe
-evidence. A normal HOLD can return exit code zero, so inspect status and
-artifacts rather than treating process success as accepted output. Release
-validation enables both checks; disabled review cannot count as a factual pass.
+### Validate and run
 
-The review covers full world, configured national, and finance story cards'
-headlines, explanations, and bodies. It does not certify radar, threads, signal,
-scoreboard data, other finance narrative, or knowledge facts. Valid evidence
-quotes and a model's supported verdict reduce risk; they do not prove that all
-claims were identified or correctly checked. Inspect cited reporting before
-owner content acceptance.
+Windows PowerShell:
 
-With source review enabled, model-authored KB delta proposals remain in private
-evidence but are not applied: card review does not cover those proposals.
-Deterministic state updates and daily artifact archiving continue. Existing KB
-content and other unreviewed fields are not retrospectively certified.
+```powershell
+.venv/Scripts/world-intel.exe validate --config "$env:USERPROFILE/worldintel.yaml" --strict
+.venv/Scripts/world-intel.exe doctor --config "$env:USERPROFILE/worldintel.yaml"
+.venv/Scripts/world-intel.exe run --config "$env:USERPROFILE/worldintel.yaml" --dry --force
+```
 
-Exact CLI stdin/schema bytes and raw outputs are private evidence, separate from replay
-capsules and briefing attachments. Keep the configured data directory outside
-Git and restrict access to it. Never upload evidence stores to public issues,
-release archives, or CI artifacts. An incomplete evidence capture cannot qualify
-a release even if generation succeeds. Offline `demo` does not invoke review.
+Linux:
 
-See [architecture](docs/architecture.md), [contribution guidance](CONTRIBUTING.md)
-and [security boundaries](SECURITY.md). No command here makes the repository public.
+```bash
+world-intel validate --config "$HOME/worldintel.yaml" --strict
+world-intel doctor --config "$HOME/worldintel.yaml"
+world-intel run --config "$HOME/worldintel.yaml" --dry --force
+```
+
+`doctor` checks local prerequisites; it does **not** verify Codex login.
+`--dry` still fetches sources and invokes Codex, using temporary working data
+without publishing a briefing or updating persistent knowledge state. It does
+not leave a viewable HTML briefing. `run --offline` is unsupported.
+
+When ready to save a live result, rerun the same `run` command without `--dry`.
+Normal runs save `brief-YYYY-MM-DD.html` under `runtime.media_dir`, which defaults
+to `~/.world-intel/media` in the example profiles. The date uses the profile's
+timezone. Inspect the logged output path and [run status](docs/analysis-reliability.md)
+if no new briefing appears: a successful process exit alone does not prove
+accepted or complete output.
+
+## Choose your coverage
+
+These starting profiles choose news desks and additional inputs, not individual
+card or section layouts. They do not guarantee source availability or complete
+coverage. Use the corresponding name with `init --profile`.
+
+| Profile | News desks | Additional inputs | Source setup |
+| --- | --- | --- | --- |
+| [`minimal`](config/example.minimal.yaml) | World | RSS only; SEC and earnings disabled | No source API credentials |
+| [`world`](config/example.world.yaml) | World, United States, Finance | S&P 500/Nikkei, USD/JPY and EUR/USD, gold and VIX; SEC and earnings disabled | Market data uses yfinance; optional Twelve Data fallback needs its key |
+| [`full`](config/example.full.yaml) | World, United States, Japan, Canada, Finance | Broader markets, FRED macro series, GDELT themes, SEC filings and earnings watchlist | Replace the synthetic SEC contact; FRED and optional providers need their own keys |
+
+All live profiles require Codex authentication. Optional provider keys go in
+`runtime.env_file` (default `~/.world-intel/.env`) and are separate from Codex
+access. See [configuration and source boundaries](docs/architecture.md#coverage-configuration)
+for provider details.
+
+## How it works
+
+The normal live save path is:
+
+```mermaid
+flowchart TD
+    S[Configured feeds and optional finance sources] --> F[Fetch, select and enrich]
+    F --> A[Codex analysis]
+    K[Local knowledge context] --> A
+    A --> Q{Story-card review enabled?}
+    Q -->|Yes| R[Review captured cited sources; optional bounded repair]
+    R -->|Accepted cards| H[Render HTML briefing]
+    R -->|Unsupported, uncertain or unavailable evidence| X[Hold new briefing]
+    Q -->|No: cards unreviewed| H
+    H --> L[Local HTML file]
+    H --> U[Local state and archive updates]
+    U --> K
+    L -.-> D[Optional external delivery via adapter handoff]
+```
+
+### State and delivery
+
+Normal runs keep caches, knowledge state, private model evidence and status under
+`runtime.data_root`. Reviewed runs withhold model-authored knowledge changes;
+deterministic state updates and archiving can continue after acceptance. Disabled
+review retains legacy behavior, including possible model-authored knowledge
+updates. A held run may still write status, raw caches and private evidence.
+
+`file` and `stdout` support standalone use. `telegram` and `hermes-cron` produce
+a Hermes `MEDIA:` handoff for an external system; World Intel has no direct
+Telegram Bot API transport or built-in scheduler. Local status and handoff do
+not prove external delivery. [Architecture](docs/architecture.md) and
+[status receipts](docs/analysis-reliability.md) explain the boundaries.
+
+## Accuracy, privacy and limitations
+
+### What source review checks
+
+Review is opt-in and compares full world, configured national and finance story
+cards' headlines, explanations and bodies with their captured cited sources.
+Optional repair permits one correction followed by final review; unresolved or
+uncertain cards can hold the run. Review does not cover Signals, Radar, threads,
+scoreboard data, other finance narrative or knowledge facts. Model-assisted
+review reduces risk; it cannot certify that every claim was found or checked
+correctly. See [review details](docs/analysis-reliability.md#source-review-and-private-evidence).
+
+### Known limitations
+
+A known Signal defect remains open: an omitted vehicle-category restriction
+made a proposed eligibility rule sound broader than its source supported.
+Story-card review does not protect auxiliary summaries from this kind of error.
+Reporting and market inputs may also be incomplete, stale or unavailable.
+Coverage checks establish source eligibility and registered-event coverage,
+not factual correctness or complete recall. Read important source reporting
+before relying on a summary.
+
+Configured desks still have [selection and tuning limitations](docs/architecture.md#coverage-configuration).
+Source publication does not establish production qualification; see the
+[release policy and known limits](docs/experimental-alpha.md).
+
+### Your data and credentials
+
+Live processing sends selected source material and supplied knowledge context
+to Codex and contacts configured source providers. It is not wholly local
+processing. Profiles are trusted input. Keep profiles, credentials, captures,
+logs and runtime data outside every Git checkout, and restrict access to them.
+Private model evidence may include source excerpts, knowledge context and raw
+responses; never attach it to public issues, archives or CI artifacts. See
+[Security](SECURITY.md) for acquisition controls, reporting and third-party rights.
+
+## Documentation and contributing
+
+- [Architecture and configuration](docs/architecture.md)
+- [Analysis reliability, source review and status](docs/analysis-reliability.md)
+- [Ranking](docs/ranking.md) and [coverage validation](docs/coverage-validation.md)
+- [Security](SECURITY.md) and [release policy](docs/experimental-alpha.md)
+- [Contributing: development setup and checks](CONTRIBUTING.md)
+
+For questions, bugs or feedback, [open a GitHub issue](https://github.com/lilnavin/world-intel-alpha/issues).
+Include a reproducible, sanitized example; use the private reporting guidance in
+Security for vulnerabilities or sensitive material.
+
+## License
+
+[MIT](LICENSE) covers this project's software and documentation. Third-party
+reporting, captures and provider output retain their separate rights and terms.

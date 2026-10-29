@@ -91,3 +91,72 @@ For verification isolation, use a separate profile with separate
 `delivery.adapter: file` or the configured handoff adapter. No new CLI path
 options are needed. No live-call or deployment verification is implied by the
 offline tests.
+
+## Source review and private evidence
+
+Coverage checks establish registered-event coverage and source eligibility;
+they do not establish factual correctness. For live use, both existing review
+settings below are recommended. To enable bounded review of final full story
+cards against captured cited sources, add these settings to the private
+profile's existing `analysis` section:
+
+```yaml
+analysis:
+  source_review_enabled: true
+  source_review_repair_enabled: true
+```
+
+Review remains opt-in. Omitted or disabled review retains legacy model-call
+behavior without this source-review barrier; normal non-dry runs may also apply
+model-authored KB deltas. Repair requires review to be enabled.
+Review consumes model access or subscription quota and uses the remaining
+analysis deadline, with at most 120 seconds per call. With only review enabled,
+it adds at most one invocation and holds unsupported or uncertain cards. The
+optional repair setting permits one correction of identified unsupported cards
+and one final review of every card: at most three added invocations in total.
+
+Before review, a staged preflight can remove an extra citation only when it
+uniquely matches a selected source with no captured article body and the card
+retains a substantive full-text tier-1/2 source. Unknown or ambiguous citations,
+and cards without a usable remaining source, still hold the run. The private
+evidence binds the original and retained citation lists; all claims must then
+pass review against the retained sources. Citation cleanup is adopted only
+after acceptance. It does not remove a card or change its prose.
+Release validation refuses cleanup whose original card cannot be reconstructed
+exactly from the retained generation evidence.
+
+The optional prose correction preserves the remaining citations and card
+membership, and adopts corrected prose only after final acceptance. There is
+no further correction or retry if it fails.
+Some explicit claim/quote contradictions, including simple cases where a stated
+plan is presented as a completed action, are rejected deterministically and use
+that same correction limit. This narrow check abstains on unsupported grammar;
+it is not general proof that every claim follows from its source.
+
+Missing sources, invalid responses, unsupported final claims, or exhausted
+budget hold the reviewed run before a new/replaced briefing, MEDIA handoff,
+delivery, or model KB-delta application. A normal HOLD may still persist status,
+raw fetch caches and private model captures; identify these writes in probe
+evidence. A normal HOLD can return exit code zero, so inspect status and
+artifacts rather than treating process success as accepted output. Release
+validation enables both checks; disabled review cannot count as a factual pass.
+
+The review covers full world, configured national, and finance story cards'
+headlines, explanations, and bodies. It does not certify radar, threads, signal,
+scoreboard data, other finance narrative, or knowledge facts. Valid evidence
+quotes and a model's supported verdict reduce risk; they do not prove that all
+claims were identified or correctly checked. Inspect cited reporting before
+owner content acceptance. The known auxiliary-summary qualifier omission is
+documented in the [release policy](experimental-alpha.md).
+
+With source review enabled, model-authored KB delta proposals remain in private
+evidence but are not applied: card review does not cover those proposals.
+Deterministic state updates and daily artifact archiving continue. Existing KB
+content and other unreviewed fields are not retrospectively certified.
+
+Exact CLI stdin/schema bytes and raw outputs are private evidence, separate from
+replay capsules and briefing attachments. Keep the configured data directory
+outside every Git repository and restrict access to it. Never upload evidence
+stores to public issues, release archives, or CI artifacts. An incomplete
+evidence capture cannot qualify a release even if generation succeeds. Offline
+`demo` does not invoke review.
