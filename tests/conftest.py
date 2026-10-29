@@ -53,6 +53,11 @@ def offline_boundaries(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect_ex", blocked)
     monkeypatch.setattr(socket, "create_connection", blocked)
     monkeypatch.setattr(socket, "getaddrinfo", blocked)
+    # Host workers run in child interpreters, beyond these socket patches.
+    from worldintel.core import command_engine
+    monkeypatch.setattr(command_engine, "_execute", blocked)
+    from worldintel import agent_run
+    monkeypatch.setattr(agent_run, "_invoke", blocked)
     # curl-backed clients bypass Python sockets.
     try:
         import curl_cffi.requests

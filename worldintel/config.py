@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import difflib
+import ipaddress
 import os
 import re
 import zoneinfo
@@ -16,7 +17,8 @@ _SCHEMA = {
     "version": int,
     "identity": {"contact_email": str, "user_agent_product": str},
     "runtime": {"timezone": str, "data_root": str, "media_dir": str, "env_file": str},
-    "analysis": {"engine": str, "reasoning_effort": str, "concurrent_passes": bool, "source_review_enabled": bool,
+    "analysis": {"command": list, "openclaw": {"gateway_url": str, "token_env": str, "agent_id": str},
+                 "hermes": {"python": str, "source_root": str}, "engine": str, "reasoning_effort": str, "concurrent_passes": bool, "source_review_enabled": bool,
                  "source_review_repair_enabled": bool,
                  "smoke_test_timeout_s": int, "world_timeout_s": int,
                  "finance_timeout_s": int, "pipeline_timeout_s": int,
@@ -84,6 +86,8 @@ def _walk(node, schema, prefix, cfg):
         _need(key, str, prefix or "configuration key")
         path = f"{prefix}.{key}" if prefix else key
         if key not in schema:
+            if prefix == "analysis" or prefix.startswith("analysis."):
+                raise ConfigError(f"unknown key `{path}`")
             near = difflib.get_close_matches(key, list(schema), n=1)
             hint = f" (did you mean `{near[0]}`?)" if near else ""
             cfg.warnings.append(f"unknown key `{path}`{hint}")
@@ -287,8 +291,45 @@ class Config:
         analysis = raw.get("analysis", {})
         if analysis.get("source_review_repair_enabled", False) and not analysis.get("source_review_enabled", False):
             raise ConfigError("`analysis.source_review_repair_enabled` requires source_review_enabled")
-        if analysis.get("engine", "codex") != "codex":
-            raise ConfigError("`analysis.engine` must be codex")
+        engine = analysis.get("engine", "codex")
+        if engine not in ("codex", "command", "openclaw", "hermes"):
+            raise ConfigError("`analysis.engine` must be codex, command, openclaw, or hermes")
+        if "command" in analysis or engine == "command":
+            command = _need(analysis.get("command"), list, "analysis.command")
+            if not command:
+                raise ConfigError("`analysis.command` must be a non-empty argv list")
+            for i, argument in enumerate(command):
+                _text(argument, f"analysis.command[{i}]")
+        if "hermes" in analysis or engine == "hermes":
+            host = analysis.get("hermes", {})
+            _text(host.get("python"), "analysis.hermes.python")
+            if "source_root" in host:
+                _text(host["source_root"], "analysis.hermes.source_root")
+        if "openclaw" in analysis or engine == "openclaw":
+            host = analysis.get("openclaw", {})
+            url = _text(host.get("gateway_url"), "analysis.openclaw.gateway_url")
+            try:
+                parsed = urlsplit(url)
+                loopback = parsed.hostname == "localhost"
+                try:
+                    loopback = loopback or ipaddress.ip_address(parsed.hostname).is_loopback
+                except ValueError:
+                    pass
+                valid = (bool(parsed.hostname) and parsed.scheme in ("https", "http")
+                         and (parsed.scheme == "https" or loopback)
+                         and not parsed.username and not parsed.password
+                         and not parsed.query and not parsed.fragment
+                         and not any(c.isspace() for c in url))
+                parsed.port
+            except (TypeError, ValueError):
+                valid = False
+            if not valid:
+                raise ConfigError("`analysis.openclaw.gateway_url` requires HTTPS or loopback HTTP without credentials, query or fragment")
+            token_env = host.get("token_env", "OPENCLAW_GATEWAY_TOKEN")
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", token_env):
+                raise ConfigError("`analysis.openclaw.token_env` must be an environment variable name")
+            if "agent_id" in host:
+                _text(host["agent_id"], "analysis.openclaw.agent_id")
         if "reasoning_effort" in analysis:
             _text(analysis["reasoning_effort"], "analysis.reasoning_effort")
         if "smoke_test_timeout_s" in analysis:

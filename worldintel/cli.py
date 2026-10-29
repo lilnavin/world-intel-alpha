@@ -27,9 +27,9 @@ def _parser():
     demo.add_argument("--out", default=".", help="output directory")
     doctor = sub.add_parser("doctor", help="check dependencies and local configuration")
     doctor.add_argument("--config")
-    run = sub.add_parser("run", help="run the live pipeline (requires Codex authentication)")
+    run = sub.add_parser("run", help="run the live pipeline using the selected analysis engine")
     run.add_argument("--config")
-    run.add_argument("--dry", action="store_true", help="temporary pipeline outputs; still uses network and Codex")
+    run.add_argument("--dry", action="store_true", help="temporary pipeline outputs; still uses network and the selected analysis engine")
     run.add_argument("--force", action="store_true")
     run.add_argument("--concurrent-passes", action="store_true")
     run.add_argument("--offline", action="store_true", help="unsupported for a live run; use demo instead")
@@ -92,14 +92,17 @@ def _doctor(args):
         except Exception:
             print(f"dependency {name}: MISSING or cannot import; reinstall world-intel")
             ok = False
-    executable = shutil.which("codex")
-    print(f"Codex executable: {'found' if executable else 'NOT FOUND'}")
-    print("Codex authentication: not checked (doctor makes no model call)")
-    ok = ok and executable is not None
     try:
         from worldintel import config
         cfg = config.load(args.config)
         print(f"configuration: valid ({cfg.source_path})")
+        from worldintel.core import analysis_engine
+        engine = analysis_engine.select(cfg)
+        status = engine.local_status()
+        print(f"Analysis engine {engine.engine_id}: {status['detail']}"
+              + ("" if status["available"] else " (NOT FOUND or unavailable)"))
+        print("Engine authentication: not checked (doctor makes no model call)")
+        ok = ok and status["available"]
         for warning in cfg.warnings:
             print(f"configuration warning: {warning}")
     except Exception as exc:
@@ -111,7 +114,7 @@ def _doctor(args):
 
 def _run(args):
     if args.offline:
-        raise ValueError("run --offline is not supported: live analysis needs network and Codex; use world-intel demo")
+        raise ValueError("run --offline is not supported: live analysis needs network and the selected analysis engine; use world-intel demo")
     from worldintel import config
     from worldintel import run
     cfg = config.load(args.config)

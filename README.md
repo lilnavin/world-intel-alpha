@@ -135,9 +135,14 @@ output directory, such as `out/demo-2`.
 ### What you need
 
 In addition to the installation above, live generation needs network access and
-an **installed, authenticated Codex CLI** with model access. Codex is the supported
-analysis engine. The `minimal` profile needs no source API credentials; optional
-providers have their own setup requirements below.
+a configured analysis engine with model access. **Codex CLI is the default** and
+requires an installed, authenticated CLI. You can explicitly select a trusted
+command wrapper, OpenClaw Gateway `llm-task`, or a supported installed Hermes
+runtime. Native adapters are feature-guarded, source-inspected and mocked-tested;
+they are not independently live-qualified across host versions or models.
+See [Use World Intel with your agent](docs/use-with-your-agent.md) for setup,
+host interpreter/plugin requirements and the verified run helper. The `minimal`
+profile needs no source API credentials; optional sources have separate setup.
 
 ### Create your configuration
 
@@ -191,9 +196,9 @@ world-intel doctor --config "$HOME/worldintel.yaml"
 world-intel run --config "$HOME/worldintel.yaml" --dry --force
 ```
 
-`doctor` checks local prerequisites; it does **not** verify Codex login.
-`--dry` still fetches sources and invokes Codex, using temporary working data
-without publishing a briefing or updating persistent knowledge state. It does
+`doctor` checks local prerequisites for the selected engine; it does **not** verify
+authentication or make a model call. `--dry` still fetches sources and invokes the
+selected engine, using temporary working data without publishing a briefing or updating persistent knowledge state. It does
 not leave a viewable HTML briefing. `run --offline` is unsupported.
 
 When ready to save a live result, rerun the same `run` command without `--dry`.
@@ -215,9 +220,10 @@ coverage. Use the corresponding name with `init --profile`.
 | [`world`](config/example.world.yaml) | World, United States, Finance | S&P 500/Nikkei, USD/JPY and EUR/USD, gold and VIX; SEC and earnings disabled | Market data uses yfinance; optional Twelve Data fallback needs its key |
 | [`full`](config/example.full.yaml) | World, United States, Japan, Canada, Finance | Broader markets, FRED macro series, GDELT themes, SEC filings and earnings watchlist | Replace the synthetic SEC contact; FRED and optional providers need their own keys |
 
-All live profiles require Codex authentication. Optional provider keys go in
-`runtime.env_file` (default `~/.world-intel/.env`) and are separate from Codex
-access. See [configuration and source boundaries](docs/architecture.md#coverage-configuration)
+All live profiles require access through their selected analysis engine. Optional
+source provider keys go in `runtime.env_file` (default `~/.world-intel/.env`) and
+are separate from host model authentication. See
+[configuration and source boundaries](docs/architecture.md#coverage-configuration)
 for provider details.
 
 ## How it works
@@ -227,7 +233,7 @@ The normal live save path is:
 ```mermaid
 flowchart TD
     S[Configured feeds and optional finance sources] --> F[Fetch, select and enrich]
-    F --> A[Codex analysis]
+    F --> A[Selected engine analysis]
     K[Local knowledge context] --> A
     A --> Q{Story-card review enabled?}
     Q -->|Yes| R[Review captured cited sources; optional bounded repair]
@@ -283,8 +289,8 @@ Source publication does not establish production qualification; see the
 ### Your data and credentials
 
 Live processing sends selected source material and supplied knowledge context
-to Codex and contacts configured source providers. It is not wholly local
-processing. Profiles are trusted input. Keep profiles, credentials, captures,
+to the selected analysis engine and contacts configured source providers. It is
+not wholly local processing. Profiles are trusted input. Keep profiles, credentials, captures,
 logs and runtime data outside every Git checkout, and restrict access to them.
 Private model evidence may include source excerpts, knowledge context and raw
 responses; never attach it to public issues, archives or CI artifacts. See
@@ -292,6 +298,7 @@ responses; never attach it to public issues, archives or CI artifacts. See
 
 ## Documentation and contributing
 
+- [Use World Intel with your agent](docs/use-with-your-agent.md)
 - [Architecture and configuration](docs/architecture.md)
 - [Analysis reliability, source review and status](docs/analysis-reliability.md)
 - [Ranking](docs/ranking.md) and [coverage validation](docs/coverage-validation.md)
