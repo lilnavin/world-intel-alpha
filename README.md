@@ -1,17 +1,23 @@
 # World Intel
 
-Turn configured news feeds and optional finance sources into a source-linked
-HTML briefing you can read locally. World Intel is for technically comfortable
-readers who want to choose their coverage, inspect model-assisted summaries,
-and follow the reporting behind each story.
+Turn RSS feeds and market data into source-linked daily news briefings, summarized by your AI agent.
 
-**Accuracy:** summaries can contain factual errors. Optional source review covers
-full story cards, not Signals, Radar or every other section. Check important
-claims against the original reporting. [Read the limitations](#accuracy-privacy-and-limitations).
+[![CI](https://github.com/lilnavin/world-intel-alpha/actions/workflows/ci.yml/badge.svg)](https://github.com/lilnavin/world-intel-alpha/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python: 3.11-3.12](https://img.shields.io/badge/python-3.11%E2%80%933.12-blue.svg)](.github/workflows/ci.yml)
+[![Experimental alpha](https://img.shields.io/badge/status-experimental%20alpha-orange.svg)](docs/experimental-alpha.md)
 
-[See the briefing](#see-the-briefing) · [Try the demo](#quickstart-try-the-offline-demo) ·
-[Generate live](#generate-a-live-briefing) · [Choose coverage](#choose-your-coverage) ·
-[How it works](#how-it-works) · [Documentation](#documentation-and-contributing)
+Choose your coverage, inspect model-assisted summaries and follow the reporting
+behind each story in a local HTML briefing.
+
+**Experimental alpha:** summaries can contain factual errors. Optional source
+review covers full story cards, not every section. Check important claims against
+original reporting. [Accuracy, privacy and limitations](#accuracy-privacy-and-limitations).
+
+[Explore the sample briefing](https://lilnavin.github.io/world-intel-alpha/) |
+[Try the offline demo](#quickstart-try-the-offline-demo) |
+[Generate live](#generate-a-live-briefing) | [Choose coverage](#choose-your-coverage) |
+[Documentation](#documentation-and-contributing)
 
 ## See the briefing
 
@@ -21,9 +27,76 @@ includes World, the fictional Harbor Island desk and Finance.
 
 <a href="docs/images/offline-demo.png"><img src="docs/images/offline-demo.png" width="560" alt="Offline demo overview with desk tabs, a World story card and supporting briefing sections."></a>
 
-*All stories, figures, sources and URLs in these screenshots are fictional.
+*The hosted sample and screenshots use synthetic, static content: all stories,
+figures, sources and URLs are fictional.
 Screenshots created 2026-10-29; this date records preview creation, not news
 freshness or live coverage. Select an image to view it at full size.*
+
+## Quickstart: try the offline demo
+
+### Prerequisites
+
+Choose the starting point that fits your setup:
+
+| Starting point | Requirements |
+| --- | --- |
+| Hosted sample above | A browser and network access; no installation or credentials |
+| Local offline demo | Git and Python **3.11 or 3.12** on Windows or Linux; network access to install dependencies, then no network, credentials or model for the installed demo |
+| Live briefing | The local installation, network access and a configured analysis engine with model access; Codex CLI is the default |
+| Optional finance and SEC inputs | Provider-specific setup: FRED and optional Twelve Data/Finnhub sources use their own keys; SEC needs your contactable identity, not an API key. See [coverage profiles](#choose-your-coverage) |
+
+On Ubuntu/Debian, install the matching Python venv package first (for example,
+`python3.12-venv` for Python 3.12).
+
+### Install and run
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/lilnavin/world-intel-alpha.git
+cd world-intel-alpha
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install --require-hashes -r requirements.lock
+.venv/Scripts/python.exe -m pip install --no-deps --no-build-isolation .
+.venv/Scripts/world-intel.exe demo --out out/demo
+```
+
+Linux:
+
+```bash
+git clone https://github.com/lilnavin/world-intel-alpha.git
+cd world-intel-alpha
+python3 -m venv .venv
+.venv/bin/python -m pip install --require-hashes -r requirements.lock
+.venv/bin/python -m pip install --no-deps --no-build-isolation .
+source .venv/bin/activate
+world-intel demo --out out/demo
+```
+
+The first install command uses pinned, hash-checked dependencies, including the
+build dependency. The second installs World Intel without resolving dependencies
+again or creating an isolated build environment. For development checks and
+tests, see [Contributing](CONTRIBUTING.md).
+
+### Open your briefing
+
+The command prints the created file's absolute path. Open
+`out/demo/world-intel-demo.html` in your browser, or use:
+
+```powershell
+# Windows PowerShell
+Start-Process out/demo/world-intel-demo.html
+```
+
+```bash
+# Linux desktop
+xdg-open out/demo/world-intel-demo.html
+```
+
+The demo refuses to overwrite an existing file. To run it again, choose a fresh
+output directory, such as `out/demo-2`.
+
+## Read the briefing
 
 ### World news card
 
@@ -72,63 +145,6 @@ and inputs. Cards and sections organize the resulting output, rather than acting
 as independently toggleable features. [Choose your coverage](#choose-your-coverage)
 for the starting profiles, or [run the demo](#quickstart-try-the-offline-demo) to
 explore the HTML locally.
-
-## Quickstart: try the offline demo
-
-### Prerequisites
-
-Use Git and Python **3.11 or 3.12** on Windows or Linux. Installation needs
-internet access; running the installed demo needs no network, API keys or model
-subscription.
-
-On Ubuntu/Debian, install the matching Python venv package first (for example,
-`python3.12-venv` for Python 3.12).
-
-### Install and run
-
-Windows PowerShell:
-
-```powershell
-git clone https://github.com/lilnavin/world-intel-alpha.git
-cd world-intel-alpha
-python -m venv .venv
-.venv/Scripts/python.exe -m pip install --require-hashes -r requirements.lock
-.venv/Scripts/python.exe -m pip install --no-deps --no-build-isolation .
-.venv/Scripts/world-intel.exe demo --out out/demo
-```
-
-Linux:
-
-```bash
-git clone https://github.com/lilnavin/world-intel-alpha.git
-cd world-intel-alpha
-python3 -m venv .venv
-.venv/bin/python -m pip install --require-hashes -r requirements.lock
-.venv/bin/python -m pip install --no-deps --no-build-isolation .
-source .venv/bin/activate
-world-intel demo --out out/demo
-```
-
-Dependencies, including build dependencies, are pinned and hash-locked. For
-development checks and tests, see [Contributing](CONTRIBUTING.md).
-
-### Open your briefing
-
-The command prints the created file's absolute path. Open
-`out/demo/world-intel-demo.html` in your browser, or use:
-
-```powershell
-# Windows PowerShell
-Start-Process out/demo/world-intel-demo.html
-```
-
-```bash
-# Linux desktop
-xdg-open out/demo/world-intel-demo.html
-```
-
-The demo refuses to overwrite an existing file. To run it again, choose a fresh
-output directory, such as `out/demo-2`.
 
 ## Generate a live briefing
 

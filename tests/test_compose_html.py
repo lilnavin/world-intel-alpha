@@ -2111,7 +2111,7 @@ def _panels(n=2):
 def test_render_html_keeps_positional_api_and_adds_pure_keyword_inputs():
     import inspect
     assert list(inspect.signature(ch.render_html).parameters) == [
-        "analysis", "bundle", "date", "desks", "timezone_label"]
+        "analysis", "bundle", "date", "desks", "timezone_label", "demo"]
     assert inspect.signature(ch.render_html).parameters["desks"].kind == inspect.Parameter.KEYWORD_ONLY
 
 
@@ -2825,3 +2825,11 @@ def test_the_pre_citation_string_shape_still_renders():
         "watch": ["2s10s spread, currently +42bp"]})
     assert "Yields rose while the dollar fell." in body
     assert "2s10s spread, currently +42bp" in body
+
+
+def test_demo_marker_is_opt_in():
+    normal = ch.render_html({}, {}, "2026-01-01")
+    assert normal == ch.render_html({}, {}, "2026-01-01", demo=False)
+    assert "Fictional sample" not in normal
+    assert "Sample date:" not in normal
+    assert "<title>World Intelligence &middot; 2026-01-01</title>" in normal

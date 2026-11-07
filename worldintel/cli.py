@@ -70,7 +70,7 @@ def _demo(args):
     bundle = json.loads(data.read_text("examples/sample-bundle.json"))
     profile = json.loads(data.read_text("examples/demo-profile.json"))
     html = compose_html.render_html(analysis, bundle, bundle["date"],
-                                    desks=profile["desks"], timezone_label="UTC")
+                                    desks=profile["desks"], timezone_label="UTC", demo=True)
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     dest = out / "world-intel-demo.html"
