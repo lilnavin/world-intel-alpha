@@ -2338,7 +2338,7 @@ def _coverage_gap_notice(analysis: dict) -> str:
     return "\n".join(notices)
 
 
-def render_html(analysis: dict, bundle: dict, date: str, *, desks=(), timezone_label="JST") -> str:
+def render_html(analysis: dict, bundle: dict, date: str, *, desks=(), timezone_label="JST", demo=False) -> str:
     """Render a complete, self-contained HTML briefing document. Pure; never raises
     on missing/None/mis-typed fields."""
     analysis = _as_dict(analysis)
@@ -2402,11 +2402,16 @@ def render_html(analysis: dict, bundle: dict, date: str, *, desks=(), timezone_l
     tabs = _tabs(panels)
     style = _style_for_desks(nationals, len(panels))
 
+    title = "World Intelligence Sample Demo" if demo else "World Intelligence"
+    date_prefix = "Sample date: " if demo else ""
+    demo_notice = ('<p class="lede">Fictional sample &mdash; static demonstration, '
+                   'not current news or investment information.</p>\n') if demo else ""
+
     body = f"""<div class="wrap">
 <header class="masthead">
 <h1>World Intelligence</h1>
-<div class="date">{_esc(date)} &middot; {_esc(timezone_label)}</div>
-<p class="lede">{_esc(lede)}</p>
+<div class="date">{date_prefix}{_esc(date)} &middot; {_esc(timezone_label)}</div>
+{demo_notice}<p class="lede">{_esc(lede)}</p>
 </header>
 
 {notice}
@@ -2422,7 +2427,7 @@ def render_html(analysis: dict, bundle: dict, date: str, *, desks=(), timezone_l
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>World Intelligence &middot; {_esc(date)}</title>
+<title>{title} &middot; {_esc(date)}</title>
 <style>{style}</style>
 </head>
 <body>

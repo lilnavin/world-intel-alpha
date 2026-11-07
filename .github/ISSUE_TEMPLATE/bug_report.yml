@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a reproducible problem using sanitized examples.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use sanitized, synthetic examples only. Do not post secrets, credentials,
+        private evidence, full source articles, personal runtime captures or production logs.
+        For sensitive reports, follow [SECURITY.md](https://github.com/lilnavin/world-intel-alpha/blob/main/SECURITY.md).
+        Use the host's private reporting channel when available; otherwise request
+        a private contact channel without posting sensitive details.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: "For example: 0.1.0 or a commit SHA"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and Python version
+      placeholder: "For example: Windows 11, Python 3.12"
+    validations:
+      required: true
+  - type: input
+    id: engine
+    attributes:
+      label: Analysis engine, if relevant
+      description: Include the engine and version; omit credentials and personal paths.
+      placeholder: "For example: offline demo (no engine), or Codex CLI and version"
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Describe what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal synthetic reproduction
+      description: Give steps and only the smallest sanitized command, invented input or error needed to reproduce. Do not attach runtime captures or articles.
+      placeholder: "For example: run the bundled demo into a fresh directory, then describe the observed error."
+    validations:
+      required: true

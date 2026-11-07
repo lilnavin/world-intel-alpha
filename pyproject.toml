@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "world-intel"
 version = "0.1.0"
-description = "A configurable daily intelligence briefing"
+description = "Turn RSS feeds and market data into source-linked daily news briefings, summarized by your AI agent."
 requires-python = ">=3.11"
 dynamic = ["dependencies"]
 

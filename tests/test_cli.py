@@ -60,6 +60,8 @@ def test_demo_is_offline_and_ignores_global_configuration(tmp_path, monkeypatch)
         pytest.fail("demo attempted a configuration or process dependency")
     monkeypatch.setattr(config, "get", forbidden)
     monkeypatch.setattr(config, "load", forbidden)
+    import socket
+    monkeypatch.setattr(socket, "socket", forbidden)
     import subprocess
     monkeypatch.setattr(subprocess, "Popen", forbidden)
     monkeypatch.setenv("WORLD_INTEL_CONFIG", str(tmp_path / "missing.yaml"))
@@ -67,8 +69,16 @@ def test_demo_is_offline_and_ignores_global_configuration(tmp_path, monkeypatch)
     output = (tmp_path / "world-intel-demo.html").read_text(encoding="utf-8")
     for text in ("Harbor Island", "Example Components", "Signal", "Threads", "On the Radar", "Scoreboard", "EXMP", "8-K"):
         assert text in output
+    from bs4 import BeautifulSoup
+    document = BeautifulSoup(output, "html.parser")
+    assert document.title.string == "World Intelligence Sample Demo \u00b7 2026-01-01"
+    assert "Fictional sample \u2014 static demonstration, not current news or investment information." in document.select_one("header.masthead").get_text()
+    assert "Sample date: 2026-01-01" in document.select_one(".date").get_text()
+    assert not document.select("script[src], link[rel=stylesheet], img[src], iframe[src]")
     assert len(output) > 10000
+    before = output
     assert cli.main(["demo", "--out", str(tmp_path)]) == 1
+    assert (tmp_path / "world-intel-demo.html").read_text(encoding="utf-8") == before
 
 
 def test_doctor_missing_codex_fails_and_does_not_claim_auth(tmp_path, monkeypatch, capsys):

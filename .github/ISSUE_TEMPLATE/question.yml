@@ -1,0 +1,34 @@
+name: Question
+description: Ask about setup or usage with sanitized context.
+title: "[Question] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use sanitized, synthetic examples only. Do not post secrets, credentials,
+        private evidence, full source articles, personal runtime captures or production logs.
+        For sensitive reports, follow [SECURITY.md](https://github.com/lilnavin/world-intel-alpha/blob/main/SECURITY.md).
+        Use the host's private reporting channel when available; otherwise request
+        a private contact channel without posting sensitive details.
+  - type: textarea
+    id: task
+    attributes:
+      label: What are you trying to do?
+      placeholder: "For example: create a local briefing from the minimal profile."
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Relevant setup and version
+      description: Include version or commit, OS, Python and engine when relevant. Omit credentials, private URLs and personal paths.
+      placeholder: "For example: 0.1.0, Ubuntu, Python 3.12, offline demo."
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Link the relevant documentation and describe your attempt using sanitized, synthetic examples only.
+    validations:
+      required: true
